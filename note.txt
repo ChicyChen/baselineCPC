@@ -1,0 +1,3 @@
+Negative/positive samples are defined based on sequence!
+Different from CPC's idea, which is based on frame prediction.
+******** Need to rewrite ********
