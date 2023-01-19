@@ -249,19 +249,19 @@ def generate_moving_mnist(digits, motions, shape=(64, 64), num_frames=30, num_se
 
 
 def tack_on(digit, motion, caption):
-    caption += ' digit {} is moving'.format(digit)
+    caption += '{},'.format(digit)
     if motion == "vertical":
-        caption += ' up and down'
+        caption += '0;'
     elif motion == "horizontal":
-        caption += ' left and right'
+        caption += '1;'
     elif motion == "circular_clockwise":
-        caption += ' clockwise in a circle'
+        caption += '2;'
     elif motion == "circular_anticlockwise":
-        caption += ' anti-clockwise in a circle'
+        caption += '3;'
     elif motion == "zigzag":
-        caption += ' in a zigzag path'
+        caption += '4;'
     elif motion == "tofro":
-        caption += ' to and fro'
+        caption += '5;'
     return caption
 
 
@@ -272,12 +272,11 @@ def main(digits, motions, dest, frame_size=64, num_frames=30, num_sequences=1, o
     dat, action_vectors = generate_moving_mnist(shape=(frame_size, frame_size), num_frames=num_frames, num_sequences=num_sequences,
                                                 digits=digits, motions=motions, original_size=original_size)
 
-    caption = tack_on(digits[0], motions[0], 'The')
+    caption = tack_on(digits[0], motions[0], '')
     if len(digits) > 1:
         for i in range(1, len(digits)):
-            caption += ' and the'
+            caption += ''
             caption = tack_on(digits[i], motions[i], caption)
-    caption += '.'
 
     fcount = len(os.listdir(dest))
 

@@ -1,4 +1,4 @@
-"python create_data.py --dest test --num_digits 1 --motion vertical --num_gifs 1"
+"python create_data.py --dest MovingMNIST --num_digits 1 --motion vertical --num_gifs 1"
 
 import moving_mnist as mnist
 import os
