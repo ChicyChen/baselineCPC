@@ -3,7 +3,7 @@ import sys
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 
 from baseline_data import *
 from baseline_cpc import *
