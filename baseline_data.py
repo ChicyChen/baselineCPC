@@ -25,13 +25,13 @@ class Moving_MNIST(data.Dataset):
     def __init__(self,
                  mode='train',
                  transform=None,
-                 seq_len=8,
+                 num_seq=8,
                  downsample=3,
                  return_motion=False,
                  return_digit=False):
         self.mode = mode
         self.transform = transform
-        self.seq_len = seq_len
+        self.num_seq = num_seq
         self.downsample = downsample
         self.return_motion = return_motion
         self.return_digit = return_digit
@@ -60,12 +60,12 @@ class Moving_MNIST(data.Dataset):
 
     def idx_sampler(self, vlen, vpath):
         '''sample index from a video'''
-        if vlen-self.seq_len*self.downsample <= 0:
+        if vlen-self.num_seq*self.downsample <= 0:
             return [None]
         n = 1
         start_idx = np.random.choice(
-            range(vlen-self.seq_len*self.downsample), n)
-        seq_idx = np.arange(self.seq_len)*self.downsample + start_idx
+            range(vlen-self.num_seq*self.downsample), n)
+        seq_idx = np.arange(self.num_seq)*self.downsample + start_idx
         return [seq_idx, vpath]
 
     def __getitem__(self, index):
@@ -76,14 +76,20 @@ class Moving_MNIST(data.Dataset):
             print(vpath)
 
         idx_block, vpath = items
-        assert idx_block.shape == (self.seq_len)
+        # print(idx_block.shape)
+        # print(self.num_seq)
+        assert idx_block.shape == (self.num_seq,)
 
-        seq = [pil_loader(os.path.join(vpath, '{i}.jpg'))
-               for i in idx_block]
-        t_seq = self.transform(seq)  # apply same transform
+        # print(os.path.join(vpath, '{}.jpg'.format(0)))
 
-        (C, H, W) = t_seq[0].size()
-        t_seq = torch.stack(t_seq, 0)
+        t_seq = [pil_loader(os.path.join(vpath, '{}.jpg'.format(i)))
+                 for i in idx_block]
+        C = 3
+        (H, W) = t_seq[0].size
+        t_seq = [self.transform(frame)
+                 for frame in t_seq]  # apply same transform
+        t_seq = torch.stack(t_seq)
+        t_seq = t_seq.view(self.num_seq, C, H, W)
 
         if self.return_motion and self.return_digit:
             motion = torch.LongTensor([self.encode_action[motion_type]])
@@ -95,7 +101,7 @@ class Moving_MNIST(data.Dataset):
         if not self.return_motion and self.return_digit:
             digit = torch.LongTensor([digit])
             return t_seq, digit
-        return t_seq, digit
+        return t_seq
 
     def __len__(self):
         return len(self.video_info)
