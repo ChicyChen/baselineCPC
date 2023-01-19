@@ -55,6 +55,7 @@ if __name__ == '__main__':
 
         for combination in itertools.combinations(numbers, num_digits):
             for i in range(batch_size):
+                digits = list(np.random.randint(low=0, high=10, size=num_digits))
                 motions = [desired_motions[np.random.randint(
                     len(desired_motions))] for _ in digits]
                 mnist.main(digits=combination, motions=motions, dest=dest)
