@@ -73,16 +73,19 @@ class baseline_CPC(nn.Module):
         ### Get similarity score ###
         # pred: [B, pred_step, code_size]
         # feature: [B, N, code_size]
-        similarity = torch.matmul(pred.view(B*self.pred_step, self.code_size), feature.view(
-            B*N, self.code_size).transpose(0, 1)).view(B, self.pred_step, B, N)
+        # feature_sub = [B, N_sub, code_size]
+        N_sub = pred_step # cobtrol number of negative pairs
+        feature_sub = feature[:, N-N_sub:, :]
+        similarity = torch.matmul(pred.view(B*self.pred_step, self.code_size), feature_sub.view(
+            B*N, self.code_size).transpose(0, 1)).view(B, self.pred_step, B, N_sub)
 
         if self.mask is None:
-            mask = torch.zeros((B, self.pred_step, B, N),
+            mask = torch.zeros((B, self.pred_step, B, N_sub),
                                dtype=torch.int8, requires_grad=False)
             # mask = mask.detach().cuda() # TODO GPU
             for j in range(B):
                 mask[j, torch.arange(self.pred_step), j, torch.arange(
-                    N-self.pred_step, N)] = 1  # pos
+                    N_sub-self.pred_step, N_sub)] = 1  # pos
             self.mask = mask
 
         return [similarity, self.mask]
