@@ -266,7 +266,7 @@ def tack_on(digit, motion, caption):
     return caption
 
 
-def main(digits, motions, dest, frame_size=64, num_frames=30, num_sequences=1, original_size=28):
+def main(digits, motions, dest, csvname, frame_size=64, num_frames=30, num_sequences=1, original_size=28):
 
     assert len(digits) > 0, "Need at least one digit"
 
@@ -286,7 +286,7 @@ def main(digits, motions, dest, frame_size=64, num_frames=30, num_sequences=1, o
     fcount = len(os.listdir(dest))
 
     # f = open(os.path.join(dest, 'captions.csv'), 'a')
-    with open(os.path.join(dest, 'data.csv'), 'a', newline='') as file:
+    with open(os.path.join(dest, csvname), 'a', newline='') as file:
         writer = csv.writer(file)
         for i in range(num_sequences):
             image_dir = os.path.join(dest, '{}'.format(fcount))
@@ -315,14 +315,15 @@ if __name__ == '__main__':
     args = vars(parser.parse_args(sys.argv[1:]))
 
     dest = args['dest']
+    csvname = args['csvname']
     num_sequences = args['num_gifs']
 
     # Create directory and the captions file
     if not os.path.exists(dest):
         os.makedirs(dest)
 
-    if not os.path.exists(os.path.join(dest, 'data.csv')):
-        open(os.path.join(dest, 'data.csv'), 'x')
+    if not os.path.exists(os.path.join(dest, csvname)):
+        open(os.path.join(dest, csvname), 'x')
 
     allowed_motions = ["vertical", "horizontal", "circular_clockwise",
                        "circular_anticlockwise", "zigzag", "tofro"]

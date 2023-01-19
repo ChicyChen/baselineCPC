@@ -49,10 +49,10 @@ class Moving_MNIST(data.Dataset):
 
         # splits
         if mode == 'train':
-            split = 'MovingMNIST/data.csv'
+            split = 'MovingMNIST/train.csv'
             video_info = pd.read_csv(split, header=None)
         elif mode == 'test':
-            split = 'MovingMNIST/data.csv'
+            split = 'MovingMNIST/test.csv'
             video_info = pd.read_csv(split, header=None)
         else:
             raise ValueError('wrong mode')

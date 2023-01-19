@@ -20,20 +20,8 @@ parser.add_argument('--num_seq', default=10, type=int,
 parser.add_argument('--downsample', default=2, type=int)
 parser.add_argument('--pred_step', default=3, type=int)
 parser.add_argument('--batch_size', default=2, type=int)
-parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
-parser.add_argument('--wd', default=1e-5, type=float, help='weight decay')
-# parser.add_argument('--resume', default='', type=str,
-#                     help='path of model to resume')
-# TODO pre-training
-# parser.add_argument('--pretrain', default='', type=str,
-#                     help='path of pretrained model')
-parser.add_argument('--epochs', default=5, type=int,
-                    help='number of total epochs to run')
-parser.add_argument('--start-epoch', default=0, type=int,
-                    help='manual epoch number (useful on restarts)')
+parser.add_argument('--epoch', default=5, type=int)
 parser.add_argument('--gpu', default='0,1', type=str)
-parser.add_argument('--print_freq', default=5, type=int,
-                    help='frequency of printing output during training')
 parser.add_argument('--prefix', default='checkpoint', type=str,
                     help='prefix of checkpoint filename')
 
@@ -47,44 +35,31 @@ def main():
     global cuda; cuda = torch.device('cuda')
 
     model = baseline_CPC(pred_step=args.pred_step)
+
+    checkpoint_path = os.path.join(args.prefix, 'epoch%s.pth.tar' % str(args.epoch))
+    model.load_state_dict(torch.load(checkpoint_path))
+    print(model.state_dict())
+
     # model = nn.DataParallel(model)
     model = model.to(cuda)
     global criterion
     criterion = nn.CrossEntropyLoss()
-    print('\n===========Check Grad============')
-    for name, param in model.named_parameters():
-        print(name, param.requires_grad)
-    print('=================================\n')
-
-    params = model.parameters()
-    optimizer = optim.Adam(params, lr=args.lr, weight_decay=args.wd)
-
-    lowest_loss = np.inf
-    global iteration
-    iteration = 0
 
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize([0.], [1.])
     ])
 
-    train_loader = get_data(transform, 'train')
+    test_loader = get_data(transform, 'test')
 
-    for epoch in range(args.start_epoch, args.epochs):
-        train_loss = train(
-            train_loader, model, optimizer, epoch)
-        lowest_loss = min(train_loss, lowest_loss)
-        # print('train loss: {}'.format(train_loss))
-    print('Training from ep %d to ep %d finished' %
-          (args.start_epoch, args.epochs))
-
-    if not os.path.exists(args.prefix):
-        os.makedirs(args.prefix)
-    checkpoint_path = os.path.join(args.prefix, 'epoch%s.pth.tar' % str(epoch+1))
-    torch.save(model.state_dict(), checkpoint_path)
+    
+    test_loss = test(
+        test_loader, model, criterion)
+        
+    print('Testing finished')
 
 
-def get_data(transform=None, mode='train'):
+def get_data(transform=None, mode='test'):
     print('Loading data for "%s" ...' % mode)
     dataset = Moving_MNIST(mode=mode,
                            transform=transform,
@@ -111,11 +86,8 @@ def get_data(transform=None, mode='train'):
     return data_loader
 
 
-def train(data_loader, model, optimizer, epoch):
+def test(data_loader, model, criterion):
     loss_list = []
-    model.train()
-    global iteration
-
     for idx, input_seq in enumerate(data_loader):
         input_seq = input_seq.to(cuda)
         B = input_seq.size(0)
@@ -128,13 +100,10 @@ def train(data_loader, model, optimizer, epoch):
         mask_flattened = mask_flattened.to(int).argmax(dim=1)
         # mask_flattened = mask_flattened.to(cuda)
         loss = criterion(score_flattened, mask_flattened)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
         loss_list.append(loss.cpu().detach().numpy())
 
     mean_loss = np.mean(loss_list)
-    print('Epoch:', epoch, 'Loss:', mean_loss)
+    print('Loss:', mean_loss)
 
     return mean_loss
 

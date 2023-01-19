@@ -84,7 +84,7 @@ class baseline_CPC(nn.Module):
         if self.mask is None:
             mask = torch.zeros((B, self.pred_step, B, N_sub),
                                dtype=torch.int8, requires_grad=False)
-            mask = mask.detach().cuda() # TODO GPU
+            mask = mask.detach().cuda()
             for j in range(B):
                 mask[j, torch.arange(self.pred_step), j, torch.arange(
                     N_sub-self.pred_step, N_sub)] = 1  # pos
