@@ -21,7 +21,6 @@ def pil_loader(path):
             return img.convert('RGB')
 
 
-# TODO fit with generated moving MNIST
 class Moving_MNIST(data.Dataset):
     def __init__(self,
                  mode='train',
@@ -50,10 +49,10 @@ class Moving_MNIST(data.Dataset):
 
         # splits
         if mode == 'train':
-            split = 'MovingMNIST/train_split.csv'
+            split = 'MovingMNIST/data.csv'
             video_info = pd.read_csv(split, header=None)
         elif mode == 'test':
-            split = 'MovingMNIST/test_split.csv'
+            split = 'MovingMNIST/data.csv'
             video_info = pd.read_csv(split, header=None)
         else:
             raise ValueError('wrong mode')
@@ -70,7 +69,8 @@ class Moving_MNIST(data.Dataset):
         return [seq_idx, vpath]
 
     def __getitem__(self, index):
-        vpath, vlen, motion_id, digit = self.video_info.iloc[index]
+        vlen = 30
+        vpath, motion_type, digit = self.video_info.iloc[index]
         items = self.idx_sampler(vlen, vpath)
         if items is None:
             print(vpath)
@@ -86,11 +86,11 @@ class Moving_MNIST(data.Dataset):
         t_seq = torch.stack(t_seq, 0)
 
         if self.return_motion and self.return_digit:
-            motion = torch.LongTensor([motion_id])
+            motion = torch.LongTensor([self.encode_action[motion_type]])
             digit = torch.LongTensor([digit])
             return t_seq, motion, digit
         if self.return_motion and not self.return_digit:
-            motion = torch.LongTensor([motion_id])
+            motion = torch.LongTensor([self.encode_action[motion_type]])
             return t_seq, motion
         if not self.return_motion and self.return_digit:
             digit = torch.LongTensor([digit])

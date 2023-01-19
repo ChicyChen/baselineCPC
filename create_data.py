@@ -36,8 +36,8 @@ if __name__ == '__main__':
     if not os.path.exists(dest):
         os.makedirs(dest)
 
-    if not os.path.exists(os.path.join(dest, 'captions.txt')):
-        open(os.path.join(dest, 'captions.txt'), 'x')
+    if not os.path.exists(os.path.join(dest, 'data.csv')):
+        open(os.path.join(dest, 'data.csv'), 'x')
 
     num_combinations = math.factorial(
         10) // math.factorial(num_digits) // math.factorial(10 - num_digits)

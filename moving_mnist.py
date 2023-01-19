@@ -3,6 +3,7 @@ import os
 import sys
 import pickle
 
+import csv
 import numpy as np
 from PIL import Image
 
@@ -272,26 +273,34 @@ def main(digits, motions, dest, frame_size=64, num_frames=30, num_sequences=1, o
     dat, action_vectors = generate_moving_mnist(shape=(frame_size, frame_size), num_frames=num_frames, num_sequences=num_sequences,
                                                 digits=digits, motions=motions, original_size=original_size)
 
-    caption = tack_on(digits[0], motions[0], '')
+    row = []
+    row.append(digits[0])
+    row.append(motions[0])
+    # caption = tack_on(digits[0], motions[0], '')
     if len(digits) > 1:
         for i in range(1, len(digits)):
-            caption += ''
-            caption = tack_on(digits[i], motions[i], caption)
+            row.append(digits[i])
+            row.append(motions[i])
+            # caption = tack_on(digits[i], motions[i], caption)
 
     fcount = len(os.listdir(dest))
 
-    f = open(os.path.join(dest, 'captions.txt'), 'a')
-    for i in range(num_sequences):
-        image_dir = os.path.join(dest, '{}'.format(fcount))
-        fcount += 1
-        os.makedirs(image_dir)
-        for j in range(num_frames):
-            Image.fromarray(get_image_from_array(
-                dat, i*num_frames+j, mean=0)).save(os.path.join(image_dir, '{}.jpg'.format(j)))
-        f.write('{},{}\n'.format(image_dir, caption))
-        with open(os.path.join(image_dir, 'actions.pkl'.format(i)), 'wb') as action_f:
-            pickle.dump(action_vectors[i], action_f)
-    f.close()
+    # f = open(os.path.join(dest, 'captions.csv'), 'a')
+    with open(os.path.join(dest, 'data.csv'), 'a', newline='') as file:
+        writer = csv.writer(file)
+        for i in range(num_sequences):
+            image_dir = os.path.join(dest, '{}'.format(fcount))
+            fcount += 1
+            os.makedirs(image_dir)
+            for j in range(num_frames):
+                Image.fromarray(get_image_from_array(
+                    dat, i*num_frames+j, mean=0)).save(os.path.join(image_dir, '{}.jpg'.format(j)))
+            # f.write('{},{}\n'.format(image_dir, caption))
+            writer.writerow([image_dir] + row)
+            with open(os.path.join(image_dir, 'actions.pkl'.format(i)), 'wb') as action_f:
+                pickle.dump(action_vectors[i], action_f)
+    file.close()
+    # f.close()
 
 
 if __name__ == '__main__':
@@ -312,8 +321,8 @@ if __name__ == '__main__':
     if not os.path.exists(dest):
         os.makedirs(dest)
 
-    if not os.path.exists(os.path.join(dest, 'captions.txt')):
-        open(os.path.join(dest, 'captions.txt'), 'x')
+    if not os.path.exists(os.path.join(dest, 'data.csv')):
+        open(os.path.join(dest, 'data.csv'), 'x')
 
     allowed_motions = ["vertical", "horizontal", "circular_clockwise",
                        "circular_anticlockwise", "zigzag", "tofro"]
