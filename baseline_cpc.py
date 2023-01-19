@@ -22,10 +22,12 @@ class baseline_CPC(nn.Module):
             nn.Conv2d(16, 32, 3, stride=2, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Conv2d(32, 64, 3, stride=2),  # (X, 32, 16, 16) -> (X, 64, 8, 8)
+            # (X, 32, 16, 16) -> (X, 64, 8, 8)
+            nn.Conv2d(32, 64, 3, stride=2, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv2d(64, 64, 3, stride=2),  # (X, 64, 8, 8) -> (X, 64, 4, 4)
+            # (X, 64, 8, 8) -> (X, 64, 4, 4)
+            nn.Conv2d(64, 64, 3, stride=2, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.Flatten(),
@@ -39,38 +41,46 @@ class baseline_CPC(nn.Module):
 
         self.pred = nn.Linear(256, self.code_size)
 
-        self._initialize_weights(self.agg)
-        self._initialize_weights(self.network_pred)
+        self._initialize_weights(self.gar)
+        self._initialize_weights(self.pred)
 
     def forward(self, block):
         # block: [B, N, C, H, W]
         (B, N, C, H, W) = block.shape
+        # print(B)
 
         block = block.view(B*N, C, H, W)
         feature = self.genc(block)  # [B*N, code_size]
         feature = feature.view(B, N, self.code_size)
-
+        # print(feature.size())
         _, hidden = self.gar(feature[:, 0:N-self.pred_step, :].contiguous())
-        hidden = hidden[:, -1, :]
+        # print(hidden.size())
+        # hidden = hidden[:, -1, :]
+        # print(hidden.size())
 
         pred = []
         for i in range(self.pred_step):
             # sequentially pred future
             p_tmp = self.pred(hidden)
+            p_tmp = p_tmp.squeeze(0)
             pred.append(p_tmp)
-            _, hidden = self.gar(p_tmp.unsqueeze(1), hidden.unsqueeze(0))
-            hidden = hidden[:, -1, :]
+            _, hidden = self.gar(p_tmp.unsqueeze(1), hidden)
+            # hidden = hidden[:, -1, :]
         pred = torch.stack(pred, 1)  # B, pred_step, code_size
+
+        # print(pred.size())
 
         ### Get similarity score ###
         # pred: [B, pred_step, code_size]
         # feature: [B, N, code_size]
-        similarity = torch.matmul(pred, feature).view(B, self.pred_step, B, N)
+        similarity = torch.matmul(pred.view(B*self.pred_step, self.code_size), feature.view(
+            B*N, self.code_size).transpose(0, 1)).view(B, self.pred_step, B, N)
 
         if self.mask is None:
             mask = torch.zeros((B, self.pred_step, B, N),
-                               dtype=torch.int8, requires_grad=False).detach().cuda()
-            for j in range(B*self.last_size**2):
+                               dtype=torch.int8, requires_grad=False)
+            # mask = mask.detach().cuda() # TODO GPU
+            for j in range(B):
                 mask[j, torch.arange(self.pred_step), j, torch.arange(
                     N-self.pred_step, N)] = 1  # pos
             self.mask = mask
