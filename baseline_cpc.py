@@ -74,10 +74,10 @@ class baseline_CPC(nn.Module):
         # pred: [B, pred_step, code_size]
         # feature: [B, N, code_size]
         # feature_sub = [B, N_sub, code_size]
-        N_sub = pred_step # cobtrol number of negative pairs
-        feature_sub = feature[:, N-N_sub:, :]
+        N_sub = self.pred_step  # cobtrol number of negative pairs
+        feature_sub = feature[:, N-N_sub:, :].contiguous()
         similarity = torch.matmul(pred.view(B*self.pred_step, self.code_size), feature_sub.view(
-            B*N, self.code_size).transpose(0, 1)).view(B, self.pred_step, B, N_sub)
+            B*N_sub, self.code_size).transpose(0, 1)).view(B, self.pred_step, B, N_sub)
 
         if self.mask is None:
             mask = torch.zeros((B, self.pred_step, B, N_sub),
