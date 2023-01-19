@@ -34,7 +34,8 @@ class Moving_MNIST(data.Dataset):
         self.transform = transform
         self.seq_len = seq_len
         self.downsample = downsample
-        self.return_label = return_label
+        self.return_motion = return_motion
+        self.return_digit = return_digit
 
         print('Using Moving MNIST data (64x64)')
 
