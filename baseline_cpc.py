@@ -8,6 +8,7 @@ class baseline_CPC(nn.Module):
     # pre_frame_num = 5, pred_step = 3, in total 8 frames
     def __init__(self, code_size=128, pred_step=3):
         super().__init__()
+        torch.cuda.manual_seed(233)
 
         self.code_size = code_size
         self.pred_step = pred_step
@@ -47,7 +48,7 @@ class baseline_CPC(nn.Module):
     def forward(self, block):
         # block: [B, N, C, H, W]
         (B, N, C, H, W) = block.shape
-        # print(B)
+        # print(B, N, C, H, W)
 
         block = block.view(B*N, C, H, W)
         feature = self.genc(block)  # [B*N, code_size]
@@ -78,11 +79,12 @@ class baseline_CPC(nn.Module):
         feature_sub = feature[:, N-N_sub:, :].contiguous()
         similarity = torch.matmul(pred.view(B*self.pred_step, self.code_size), feature_sub.view(
             B*N_sub, self.code_size).transpose(0, 1)).view(B, self.pred_step, B, N_sub)
+        # print(similarity.size())
 
         if self.mask is None:
             mask = torch.zeros((B, self.pred_step, B, N_sub),
                                dtype=torch.int8, requires_grad=False)
-            # mask = mask.detach().cuda() # TODO GPU
+            mask = mask.detach().cuda() # TODO GPU
             for j in range(B):
                 mask[j, torch.arange(self.pred_step), j, torch.arange(
                     N_sub-self.pred_step, N_sub)] = 1  # pos

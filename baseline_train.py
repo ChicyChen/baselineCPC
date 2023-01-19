@@ -31,7 +31,7 @@ parser.add_argument('--epochs', default=10, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
-# parser.add_argument('--gpu', default='0,1', type=str)
+parser.add_argument('--gpu', default='0,1', type=str)
 # TODO run with GPU
 parser.add_argument('--print_freq', default=5, type=int,
                     help='frequency of printing output during training')
@@ -44,12 +44,12 @@ def main():
     np.random.seed(0)
     global args
     args = parser.parse_args()
-    # os.environ["CUDA_VISIBLE_DEVICES"]=str(args.gpu)
-    # global cuda; cuda = torch.device('cuda')
+    os.environ["CUDA_VISIBLE_DEVICES"]=str(args.gpu)
+    global cuda; cuda = torch.device('cuda')
 
     model = baseline_CPC(pred_step=args.pred_step)
     # model = nn.DataParallel(model)
-    # model = model.to(cuda)
+    model = model.to(cuda)
     global criterion
     criterion = nn.CrossEntropyLoss()
     print('\n===========Check Grad============')
@@ -113,17 +113,21 @@ def train(data_loader, model, optimizer, epoch):
     global iteration
 
     for idx, input_seq in enumerate(data_loader):
+        input_seq = input_seq.to(cuda)
         B = input_seq.size(0)
         [score_, mask_] = model(input_seq)
+        # print(score_.shape)
         (B, pred, B, N) = score_.shape
+        # print(B, pred, N)
         score_flattened = score_.view(B*pred, B*N)
         mask_flattened = mask_.view(B*pred, B*N)
         mask_flattened = mask_flattened.to(int).argmax(dim=1)
+        # mask_flattened = mask_flattened.to(cuda)
         loss = criterion(score_flattened, mask_flattened)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        loss_list.append(loss.detach().numpy())
+        loss_list.append(loss.cpu().detach().numpy())
 
     mean_loss = np.mean(loss_list)
     print('Epoch:', epoch, 'Loss:', mean_loss)
