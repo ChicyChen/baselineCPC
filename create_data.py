@@ -7,6 +7,7 @@ import moving_mnist as mnist
 "python create_data.py --dest MovingMNIST --num_digits 1 --motion vertical --num_gifs 1"
 "python create_data.py --dest MovingMNIST --csvname test.csv --num_digits 1 --motion vertical horizontal circular_clockwise circular_anticlockwise zigzag tofro  --num_gifs 100"
 "python create_data.py --dest MovingMNIST --num_digits 1 --motion circular_clockwise --num_gifs 1"
+"python create_data.py --dest MovingMNIST --csvname train.csv --num_digits 1 --motion vertical horizontal circular_clockwise circular_anticlockwise zigzag tofro  --num_gifs 2500"
 
 if __name__ == '__main__':
     import argparse
