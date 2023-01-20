@@ -70,7 +70,7 @@ class Moving_MNIST(data.Dataset):
 
     def __getitem__(self, index):
         vlen = 30
-        vpath, motion_type, digit = self.video_info.iloc[index]
+        vpath, digit, motion_type = self.video_info.iloc[index]
         items = self.idx_sampler(vlen, vpath)
         if items is None:
             print(vpath)
@@ -92,11 +92,12 @@ class Moving_MNIST(data.Dataset):
         t_seq = t_seq.view(self.num_seq, C, H, W)
 
         if self.return_motion and self.return_digit:
-            motion = torch.LongTensor([self.encode_action[motion_type]])
+            motion = torch.LongTensor([self.encode_action(motion_type)])
             digit = torch.LongTensor([digit])
             return t_seq, motion, digit
         if self.return_motion and not self.return_digit:
-            motion = torch.LongTensor([self.encode_action[motion_type]])
+            # print(motion_type)
+            motion = torch.LongTensor([self.encode_action(motion_type)])
             return t_seq, motion
         if not self.return_motion and self.return_digit:
             digit = torch.LongTensor([digit])

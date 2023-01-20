@@ -19,7 +19,8 @@ from PIL import Image
 
 "python baseline_test_with_decoder.py"
 "python baseline_test_with_decoder.py --epoch 20"
-"python baseline_test_with_decoder.py --la 0.1 --epoch 20"
+"python baseline_test_with_decoder.py --la 0.1 --prefix wd_checkpoint_la01 --epoch 20"
+"python baseline_test_with_decoder.py --la 0.1 --prefix wd_checkpoint_la01"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
