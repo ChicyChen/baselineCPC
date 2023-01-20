@@ -88,6 +88,7 @@ def get_data(transform=None, mode='test'):
 
 def test(data_loader, model, criterion):
     loss_list = []
+    model.eval()
     for idx, input_seq in enumerate(data_loader):
         input_seq = input_seq.to(cuda)
         B = input_seq.size(0)

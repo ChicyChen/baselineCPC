@@ -101,3 +101,6 @@ class baseline_CPC(nn.Module):
 
     def reset_mask(self):
         self.mask = None
+
+
+
