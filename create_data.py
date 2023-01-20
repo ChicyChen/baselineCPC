@@ -6,7 +6,7 @@ import os
 import moving_mnist as mnist
 "python create_data.py --dest MovingMNIST --num_digits 1 --motion vertical --num_gifs 1"
 "python create_data.py --dest MovingMNIST --csvname test.csv --num_digits 1 --motion vertical horizontal circular_clockwise circular_anticlockwise zigzag tofro  --num_gifs 100"
-
+"python create_data.py --dest MovingMNIST --num_digits 1 --motion circular_clockwise --num_gifs 1"
 
 if __name__ == '__main__':
     import argparse
@@ -46,25 +46,31 @@ if __name__ == '__main__':
     num_combinations = math.factorial(
         10) // math.factorial(num_digits) // math.factorial(10 - num_digits)
 
-    if num_gifs < 2*num_combinations:
-        for i in range(num_gifs):
-            digits = list(np.random.randint(low=0, high=10, size=num_digits))
-            motions = [desired_motions[np.random.randint(
-                len(desired_motions))] for _ in digits]
-            mnist.main(digits=digits, motions=motions, dest=dest, csvname=csvname)
+    for i in range(num_gifs):
+        digits = list(np.random.randint(low=0, high=10, size=num_digits))
+        motions = [desired_motions[np.random.randint(
+            len(desired_motions))] for _ in digits]
+        mnist.main(digits=digits, motions=motions, dest=dest, csvname=csvname)
 
-    else:
-        batch_size = num_gifs // num_combinations
+    # if num_gifs < 2*num_combinations:
+    #     for i in range(num_gifs):
+    #         digits = list(np.random.randint(low=0, high=10, size=num_digits))
+    #         motions = [desired_motions[np.random.randint(
+    #             len(desired_motions))] for _ in digits]
+    #         mnist.main(digits=digits, motions=motions, dest=dest, csvname=csvname)
 
-        for combination in itertools.combinations(numbers, num_digits):
-            for i in range(batch_size):
-                digits = list(np.random.randint(low=0, high=10, size=num_digits))
-                motions = [desired_motions[np.random.randint(
-                    len(desired_motions))] for _ in digits]
-                mnist.main(digits=combination, motions=motions, dest=dest, csvname=csvname)
+    # else:
+    #     batch_size = num_gifs // num_combinations
 
-        for i in range(num_gifs - (batch_size*num_combinations)):
-            digits = list(np.random.randint(low=0, high=10, size=num_digits))
-            motions = [desired_motions[np.random.randint(
-                len(desired_motions))] for _ in digits]
-            mnist.main(digits=digits, motions=motions, dest=dest, csvname=csvname)
+    #     for combination in itertools.combinations(numbers, num_digits):
+    #         for i in range(batch_size):
+    #             digits = list(np.random.randint(low=0, high=10, size=num_digits))
+    #             motions = [desired_motions[np.random.randint(
+    #                 len(desired_motions))] for _ in digits]
+    #             mnist.main(digits=combination, motions=motions, dest=dest, csvname=csvname)
+
+    #     for i in range(num_gifs - (batch_size*num_combinations)):
+    #         digits = list(np.random.randint(low=0, high=10, size=num_digits))
+    #         motions = [desired_motions[np.random.randint(
+    #             len(desired_motions))] for _ in digits]
+    #         mnist.main(digits=digits, motions=motions, dest=dest, csvname=csvname)

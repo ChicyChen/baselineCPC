@@ -211,6 +211,9 @@ def generate_moving_mnist(digits, motions, shape=(64, 64), num_frames=30, num_se
                         action_vectors[img_idx][frame_idx][3] = 1
                     elif motion_dict[i]["veloc"][0] < 0:
                         action_vectors[img_idx][frame_idx][2] = 1
+                elif motions[i] in ["circular_clockwise", "circular_anticlockwise", "zigzag"]:
+                    canv.paste(
+                        images[i], (int(positions[i][0]), int(positions[i][1])))
                 canvas += arr_from_img(canv, mean=0)
 
             for i in range(len(digits)):
