@@ -16,8 +16,30 @@ import torchvision.utils as vutils
 import torch.nn as nn
 import torch.nn.functional as F
 
-"python classify_motion.py"
+"python classify_motion.py --backbone checkpoint/epoch10.pth.tar --prefix checkpoint_m_lc"
+"python classify_motion.py --lr 1e-3 --backbone checkpoint/epoch10.pth.tar --prefix checkpoint_m_lc_lr_e3"
+"python classify_motion.py --lr 1e-3 --wd 1e-3 --backbone checkpoint/epoch10.pth.tar --prefix checkpoint_m_lc_lr_e3_wd_e3"
+"python classify_motion.py --lr 1e-3 --wd 1e-4 --backbone checkpoint/epoch10.pth.tar --prefix checkpoint_m_lc_lr_e3_wd_e4"
+"python classify_motion.py --lr 1e-4 --wd 1e-4 --backbone checkpoint/epoch10.pth.tar --prefix checkpoint_m_lc_lr_e4_wd_e4"
+
 "python classify_motion.py --backbone noexit --prefix checkpoint_m_lc_noprecl"
+"python classify_motion.py --lr 1e-3 --backbone noexit --prefix checkpoint_m_lc_lr_e3_noprecl"
+"python classify_motion.py --lr 1e-3 --wd 1e-3 --backbone noexit --prefix checkpoint_m_lc_lr_e3_wd_e3_noprecl"
+"python classify_motion.py --lr 1e-3 --wd 1e-4 --backbone noexit --prefix checkpoint_m_lc_lr_e3_wd_e4_noprecl"
+"python classify_motion.py --lr 1e-4 --wd 1e-4 --backbone noexit --prefix checkpoint_m_lc_lr_e4_wd_e4_noprecl"
+
+"python classify_motion.py --backbone wd_checkpoint/epoch10.pth.tar --prefix wd_checkpoint_m_lc"
+"python classify_motion.py --lr 1e-3 --backbone wd_checkpoint/epoch10.pth.tar --prefix wd_checkpoint_m_lc_lr_e3"
+"python classify_motion.py --lr 1e-3 --wd 1e-3 --backbone wd_checkpoint/epoch10.pth.tar --prefix wd_checkpoint_m_lc_lr_e3_wd_e3"
+"python classify_motion.py --lr 1e-3 --wd 1e-4 --backbone wd_checkpoint/epoch10.pth.tar --prefix wd_checkpoint_m_lc_lr_e3_wd_e4"
+"python classify_motion.py --lr 1e-4 --wd 1e-4 --backbone wd_checkpoint/epoch10.pth.tar --prefix wd_checkpoint_m_lc_lr_e4_wd_e4"
+
+"python classify_motion.py --backbone wd_checkpoint_la01/epoch10.pth.tar --prefix wd_checkpoint_la01_m_lc"
+"python classify_motion.py --lr 1e-3 --backbone wd_checkpoint_la01/epoch10.pth.tar --prefix wd_checkpoint_la01_m_lc_lr_e3"
+"python classify_motion.py --lr 1e-3 --wd 1e-3 --backbone wd_checkpoint_la01/epoch10.pth.tar --prefix wd_checkpoint_la01_m_lc_lr_e3_wd_e3"
+"python classify_motion.py --lr 1e-3 --wd 1e-4 --backbone wd_checkpoint_la01/epoch10.pth.tar --prefix wd_checkpoint_la01_m_lc_lr_e3_wd_e4"
+"python classify_motion.py --lr 1e-4 --wd 1e-4 --backbone wd_checkpoint_la01/epoch10.pth.tar --prefix wd_checkpoint_la01_m_lc_lr_e4_wd_e4"
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
@@ -37,7 +59,7 @@ parser.add_argument('--epochs', default=10, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--gpu', default='0,1', type=str)
+parser.add_argument('--gpu', default='1', type=str)
 parser.add_argument('--prefix', default='checkpoint_m_lc', type=str,
                     help='prefix of checkpoint filename')
 
