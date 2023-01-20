@@ -14,20 +14,24 @@ from torch.utils import data
 from torchvision import datasets, models, transforms
 import torchvision.utils as vutils
 
+"python baseline_train.py"
+"python baseline_train.py --pretrain checkpoint/epoch10.pth.tar --epochs 20 --start-epoch 10"
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
                     help='number of video blocks')
 parser.add_argument('--downsample', default=2, type=int)
 parser.add_argument('--pred_step', default=3, type=int)
+parser.add_argument('--nsub', default=3, type=int)
 parser.add_argument('--batch_size', default=2, type=int)
 parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
 parser.add_argument('--wd', default=1e-5, type=float, help='weight decay')
 # parser.add_argument('--resume', default='', type=str,
 #                     help='path of model to resume')
 # TODO pre-training
-# parser.add_argument('--pretrain', default='', type=str,
-#                     help='path of pretrained model')
-parser.add_argument('--epochs', default=5, type=int,
+parser.add_argument('--pretrain', default='', type=str,
+                    help='path of pretrained model')
+parser.add_argument('--epochs', default=10, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
@@ -43,10 +47,19 @@ def main():
     np.random.seed(0)
     global args
     args = parser.parse_args()
-    os.environ["CUDA_VISIBLE_DEVICES"]=str(args.gpu)
-    global cuda; cuda = torch.device('cuda')
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+    global cuda
+    cuda = torch.device('cuda')
 
-    model = baseline_CPC(pred_step=args.pred_step)
+    model = baseline_CPC(pred_step=args.pred_step, nsub=args.nsub)
+    if args.pretrain:
+        if os.path.isfile(args.pretrain):
+            print("=> loading pretrained checkpoint '{}'".format(args.pretrain))
+            model.load_state_dict(torch.load(args.pretrain))
+            print("model loaded.")
+        else:
+            print("=> no checkpoint found at '{}'".format(args.pretrain))
+
     # model = nn.DataParallel(model)
     model = model.to(cuda)
     global criterion
@@ -80,7 +93,8 @@ def main():
 
     if not os.path.exists(args.prefix):
         os.makedirs(args.prefix)
-    checkpoint_path = os.path.join(args.prefix, 'epoch%s.pth.tar' % str(epoch+1))
+    checkpoint_path = os.path.join(
+        args.prefix, 'epoch%s.pth.tar' % str(epoch+1))
     torch.save(model.state_dict(), checkpoint_path)
 
 

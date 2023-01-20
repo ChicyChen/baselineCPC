@@ -6,12 +6,13 @@ import torch.nn.functional as F
 
 class baseline_CPC_with_decoder(nn.Module):
     # pre_frame_num = 5, pred_step = 3, in total 8 frames
-    def __init__(self, code_size=128, pred_step=3):
+    def __init__(self, code_size=128, pred_step=3, nsub=3):
         super().__init__()
         torch.cuda.manual_seed(233)
 
         self.code_size = code_size
         self.pred_step = pred_step
+        self.nsub = nsub
         self.mask = None
 
         self.genc = nn.Sequential(
@@ -49,19 +50,23 @@ class baseline_CPC_with_decoder(nn.Module):
             nn.Linear(256, 64*4*4),
             nn.Unflatten(dim=1, unflattened_size=(64, 4, 4)),
             # (X, 64, 4, 4) -> (X, 64, 8, 8)
-            nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(64, 64, 3, stride=2,
+                               padding=1, output_padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
             # (X, 64, 8, 8) -> (X, 32, 16, 16)
-            nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(64, 32, 3, stride=2,
+                               padding=1, output_padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             # (X, 32, 16, 16) -> (X, 16, 32, 32)
-            nn.ConvTranspose2d(32, 16, 3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(32, 16, 3, stride=2,
+                               padding=1, output_padding=1),
             nn.BatchNorm2d(16),
             nn.ReLU(),
             # (X, 16, 32, 32) -> (X, 3, 64, 64)
-            nn.ConvTranspose2d(16, 3, 3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(16, 3, 3, stride=2,
+                               padding=1, output_padding=1),
             nn.BatchNorm2d(3),
             nn.ReLU(),
         )
@@ -105,12 +110,11 @@ class baseline_CPC_with_decoder(nn.Module):
         # pred: [B, pred_step, code_size]
         # feature: [B, N, code_size]
         # feature_sub = [B, N_sub, code_size]
-        N_sub = self.pred_step  # cobtrol number of negative pairs
+        N_sub = self.nsub  # cobtrol number of negative pairs
         feature_sub = feature[:, N-N_sub:, :].contiguous()
         similarity = torch.matmul(pred.view(B*self.pred_step, self.code_size), feature_sub.view(
             B*N_sub, self.code_size).transpose(0, 1)).view(B, self.pred_step, B, N_sub)
         # print(similarity.size())
-
 
         if self.mask is None:
             mask = torch.zeros((B, self.pred_step, B, N_sub),

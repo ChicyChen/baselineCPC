@@ -17,12 +17,19 @@ import torchvision.utils as vutils
 
 from PIL import Image
 
+"python baseline_test_with_decoder.py"
+"python baseline_test_with_decoder.py --epoch 20"
+"python baseline_test_with_decoder.py --la 0.1 --epoch 20"
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
                     help='number of video blocks')
 parser.add_argument('--downsample', default=2, type=int)
 parser.add_argument('--pred_step', default=3, type=int)
-parser.add_argument('--batch_size', default=2, type=int)
+parser.add_argument('--nsub', default=3, type=int)
+parser.add_argument('--batch_size', default=4, type=int)
+parser.add_argument('--la', default=0.5, type=float,
+                    help='contrastive loss weight')
 parser.add_argument('--epoch', default=10, type=int)
 parser.add_argument('--gpu', default='0,1', type=str)
 parser.add_argument('--prefix', default='wd_checkpoint', type=str,
@@ -41,12 +48,12 @@ def main():
     global vis
     vis = 0
 
-    model = baseline_CPC_with_decoder(pred_step=args.pred_step)
+    model = baseline_CPC_with_decoder(pred_step=args.pred_step, nsub=args.nsub)
 
     checkpoint_path = os.path.join(
         args.prefix, 'epoch%s.pth.tar' % str(args.epoch))
     model.load_state_dict(torch.load(checkpoint_path))
-    print(model.state_dict())
+    # print(model.state_dict())
 
     # model = nn.DataParallel(model)
     model = model.to(cuda)
@@ -61,8 +68,7 @@ def main():
 
     test_loader = get_data(transform, 'test')
 
-    test_loss = test(
-        test_loader, model)
+    test_loss = test(test_loader, model, args.la)
 
     print('Testing finished')
 
@@ -94,7 +100,7 @@ def get_data(transform=None, mode='test'):
     return data_loader
 
 
-def test(data_loader, model):
+def test(data_loader, model, la=0.5):
     global vis
     loss_list = []
     model.eval()
@@ -111,7 +117,7 @@ def test(data_loader, model):
         # mask_flattened = mask_flattened.to(cuda)
         loss = criterion(score_flattened, mask_flattened)
         loss_mse = mse(input_seq[:, -pred:, :, :, :], reconst_)
-        total_loss = 0.5*loss + 0.5*loss_mse
+        total_loss = la*loss + (1-la)*loss_mse
         loss_list.append(total_loss.cpu().detach().numpy())
         if idx % 10 == 0:
             visualize_pred(
@@ -133,7 +139,7 @@ def visualize_pred(gt_frames, pred_frames):
     full_img = np.concatenate((swap_gt, swap_pred), axis=1)
     full_img = full_img*(255/np.max(full_img))
     im = Image.fromarray(full_img.astype(np.uint8))
-    im.save("vis_{}.jpg".format(vis))
+    im.save("fun_vis_{}.jpg".format(vis))
     vis = vis + 1
 
 

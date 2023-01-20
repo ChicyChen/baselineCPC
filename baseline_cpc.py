@@ -6,12 +6,13 @@ import torch.nn.functional as F
 
 class baseline_CPC(nn.Module):
     # pre_frame_num = 5, pred_step = 3, in total 8 frames
-    def __init__(self, code_size=128, pred_step=3):
+    def __init__(self, code_size=128, pred_step=3, nsub=3):
         super().__init__()
         torch.cuda.manual_seed(233)
 
         self.code_size = code_size
         self.pred_step = pred_step
+        self.nsub = nsub
         self.mask = None
 
         self.genc = nn.Sequential(
@@ -75,7 +76,7 @@ class baseline_CPC(nn.Module):
         # pred: [B, pred_step, code_size]
         # feature: [B, N, code_size]
         # feature_sub = [B, N_sub, code_size]
-        N_sub = self.pred_step  # cobtrol number of negative pairs
+        N_sub = self.nsub  # cobtrol number of negative pairs
         feature_sub = feature[:, N-N_sub:, :].contiguous()
         similarity = torch.matmul(pred.view(B*self.pred_step, self.code_size), feature_sub.view(
             B*N_sub, self.code_size).transpose(0, 1)).view(B, self.pred_step, B, N_sub)
@@ -101,6 +102,3 @@ class baseline_CPC(nn.Module):
 
     def reset_mask(self):
         self.mask = None
-
-
-

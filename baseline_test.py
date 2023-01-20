@@ -14,13 +14,17 @@ from torch.utils import data
 from torchvision import datasets, models, transforms
 import torchvision.utils as vutils
 
+"python baseline_test.py"
+"python baseline_test.py --epoch 20"
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
                     help='number of video blocks')
 parser.add_argument('--downsample', default=2, type=int)
 parser.add_argument('--pred_step', default=3, type=int)
+parser.add_argument('--nsub', default=3, type=int)
 parser.add_argument('--batch_size', default=2, type=int)
-parser.add_argument('--epoch', default=5, type=int)
+parser.add_argument('--epoch', default=10, type=int)
 parser.add_argument('--gpu', default='0,1', type=str)
 parser.add_argument('--prefix', default='checkpoint', type=str,
                     help='prefix of checkpoint filename')
@@ -31,14 +35,16 @@ def main():
     np.random.seed(0)
     global args
     args = parser.parse_args()
-    os.environ["CUDA_VISIBLE_DEVICES"]=str(args.gpu)
-    global cuda; cuda = torch.device('cuda')
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+    global cuda
+    cuda = torch.device('cuda')
 
-    model = baseline_CPC(pred_step=args.pred_step)
+    model = baseline_CPC(pred_step=args.pred_step, nsub=args.nsub)
 
-    checkpoint_path = os.path.join(args.prefix, 'epoch%s.pth.tar' % str(args.epoch))
+    checkpoint_path = os.path.join(
+        args.prefix, 'epoch%s.pth.tar' % str(args.epoch))
     model.load_state_dict(torch.load(checkpoint_path))
-    print(model.state_dict())
+    # print(model.state_dict())
 
     # model = nn.DataParallel(model)
     model = model.to(cuda)
@@ -52,10 +58,9 @@ def main():
 
     test_loader = get_data(transform, 'test')
 
-    
     test_loss = test(
         test_loader, model, criterion)
-        
+
     print('Testing finished')
 
 
