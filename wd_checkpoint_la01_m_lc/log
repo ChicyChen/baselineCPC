@@ -1,0 +1,14 @@
+Loading data for "train" ...
+Using Moving MNIST data (64x64)
+"train" dataset size: 10000
+Epoch: 0 Loss: 1.7748158 Acc: 0.2058
+Epoch: 1 Loss: 1.692659 Acc: 0.2944
+Epoch: 2 Loss: 1.649225 Acc: 0.3205
+Epoch: 3 Loss: 1.591182 Acc: 0.3536
+Epoch: 4 Loss: 1.5559856 Acc: 0.3733
+Epoch: 5 Loss: 1.5195223 Acc: 0.3884
+Epoch: 6 Loss: 1.497194 Acc: 0.4021
+Epoch: 7 Loss: 1.4869612 Acc: 0.4142
+Epoch: 8 Loss: 1.4849077 Acc: 0.4195
+Epoch: 9 Loss: 1.4568121 Acc: 0.435
+Training from ep 0 to ep 10 finished
