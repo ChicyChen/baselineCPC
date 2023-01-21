@@ -140,7 +140,7 @@ def visualize_pred(gt_frames, pred_frames):
     full_img = np.concatenate((swap_gt, swap_pred), axis=1)
     full_img = full_img*(255/np.max(full_img))
     im = Image.fromarray(full_img.astype(np.uint8))
-    im.save("fun_vis_{}.jpg".format(vis))
+    im.save("la05_vis_{}.jpg".format(vis))
     vis = vis + 1
 
 
