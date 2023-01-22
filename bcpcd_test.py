@@ -18,10 +18,9 @@ import torchvision.utils as vutils
 
 from PIL import Image
 
-"python baseline_test_with_decoder_after_finetune.py"
-"python baseline_test_with_decoder_after_finetune.py --epoch 20"
-"python baseline_test_with_decoder_after_finetune.py --la 0.1 --prefix wd_checkpoint_la01 --epoch 20"
-"python baseline_test_with_decoder_after_finetune.py --la 0.1 --prefix wd_checkpoint_la01"
+"python bcpcd_test.py"
+"python bcpcd_test.py --epoch 3"
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
@@ -30,14 +29,16 @@ parser.add_argument('--downsample', default=2, type=int)
 parser.add_argument('--pred_step', default=3, type=int)
 parser.add_argument('--nsub', default=3, type=int)
 parser.add_argument('--batch_size', default=4, type=int)
+parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
+parser.add_argument('--wd', default=1e-5, type=float, help='weight decay')
 parser.add_argument('--la', default=0.5, type=float,
                     help='contrastive loss weight')
 parser.add_argument('--epoch', default=10, type=int)
 parser.add_argument('--gpu', default='0,1', type=str)
-parser.add_argument('--prefix', default='wd_checkpoint', type=str,
+parser.add_argument('--prefix', default='checkpoints', type=str,
                     help='prefix of checkpoint filename')
-parser.add_argument('--finetuned', default='wd_checkpoint_la01_m_lc/epoch10.pth.tar', type=str,
-                    help='path of finetuned model')
+parser.add_argument('--visual', default='visualize', type=str,
+                    help='visualize folder name')
 
 
 def main():
@@ -55,12 +56,9 @@ def main():
     model = baseline_CPC_with_decoder(pred_step=args.pred_step, nsub=args.nsub)
 
     checkpoint_path = os.path.join(
-        args.prefix, 'epoch%s.pth.tar' % str(args.epoch))
+        args.prefix, 'bcpcd_lr%s_wd%s_la%s' % (args.lr, args.wd, args.la), 'epoch%s.pth.tar' % str(args.epoch)) 
     model.load_state_dict(torch.load(checkpoint_path))
     # print(model.state_dict())
-
-    finetuned = torch.load(args.finetuned)
-    model = neq_load_customized(model, finetuned)
 
     # model = nn.DataParallel(model)
     model = model.to(cuda)
@@ -75,12 +73,21 @@ def main():
 
     test_loader = get_data(transform, 'test', args.num_seq, args.downsample, return_motion=False, return_digit=False, batch_size=args.batch_size)
 
-    test_loss = test(test_loader, model, args.la)
+    # create folders
+    if not os.path.exists(args.visual):
+        os.makedirs(args.visual)
+
+    vis_folder = os.path.join(
+        args.visual, 'bcpcd_lr%s_wd%s_la%s_epoch%s' % (args.lr, args.wd, args.la, args.epoch))
+    if not os.path.exists(vis_folder):
+        os.makedirs(vis_folder)
+
+    test_loss = test(test_loader, model, vis_folder, args.la)
 
     print('Testing finished')
 
 
-def test(data_loader, model, la=0.5):
+def test(data_loader, model, vis_folder, la):
     global vis
     loss_list = []
     model.eval()
@@ -100,13 +107,16 @@ def test(data_loader, model, la=0.5):
         total_loss = la*loss + (1-la)*loss_mse
         loss_list.append(total_loss.cpu().detach().numpy())
         if idx % 10 == 0:
+            filename = os.path.join(vis_folder, '%d.png' % vis)
             visualize_pred(
-                input_seq[0, -pred:, :, :, :].cpu().detach().numpy(), reconst_[0].cpu().detach().numpy())
+                input_seq[0, -pred:, :, :, :].cpu().detach().numpy(), reconst_[0].cpu().detach().numpy(), filename)
+            vis = vis + 1
 
     mean_loss = np.mean(loss_list)
     print('Loss:', mean_loss)
 
     return mean_loss
+
 
 
 if __name__ == '__main__':
