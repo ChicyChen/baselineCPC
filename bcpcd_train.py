@@ -38,6 +38,7 @@ parser.add_argument('--gpu', default='0,1', type=str)
 parser.add_argument('--prefix', default='checkpoints', type=str,
                     help='prefix of checkpoint filename')
 parser.add_argument('--no_test', action='store_true')
+parser.add_argument('--no_save', action='store_true')
 
 
 def main():
@@ -118,9 +119,10 @@ def main():
                 best_epoch = epoch + 1
         
         # save models
-        checkpoint_path = os.path.join(
-            ckpt_folder, 'epoch%s.pth.tar' % str(epoch+1))
-        torch.save(model.state_dict(), checkpoint_path)
+        if not args.no_save:
+            checkpoint_path = os.path.join(
+                ckpt_folder, 'epoch%s.pth.tar' % str(epoch+1))
+            torch.save(model.state_dict(), checkpoint_path)
         
     print('Training from ep %d to ep %d finished' %
           (args.start_epoch, args.epochs))
@@ -134,7 +136,7 @@ def main():
     plt.xticks(epoch_list, epoch_list)
     plt.legend()
     plt.savefig(os.path.join(
-        ckpt_folder, 'epoch%s.png' % str(epoch+1)))
+        ckpt_folder, 'epoch%s_bs%s.png' % (epoch+1, args.batch_size)))
 
 
 def train(data_loader, model, optimizer, epoch, la=0.5, train = True):

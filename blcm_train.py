@@ -42,6 +42,7 @@ parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
 parser.add_argument('--gpu', default='1', type=str)
 parser.add_argument('--no_test', action='store_true')
+parser.add_argument('--no_save', action='store_true')
 
 
 
@@ -132,9 +133,10 @@ def main():
                 best_epoch = epoch + 1
 
         # save models
-        checkpoint_path = os.path.join(
-            ckpt_folder, 'epoch%s.pth.tar' % str(epoch+1))
-        torch.save(model.state_dict(), checkpoint_path)
+        if not args.no_save:
+            checkpoint_path = os.path.join(
+                ckpt_folder, 'epoch%s.pth.tar' % str(epoch+1))
+            torch.save(model.state_dict(), checkpoint_path)
         
     print('Training from ep %d to ep %d finished' %
           (args.start_epoch, args.epochs))
@@ -148,7 +150,7 @@ def main():
     plt.xticks(epoch_list, epoch_list)
     plt.legend()
     plt.savefig(os.path.join(
-        ckpt_folder, 'epoch%s.png' % str(epoch+1)))
+        ckpt_folder, 'epoch%s_bs%s.png' % (epoch+1, args.batch_size)))
 
 
 

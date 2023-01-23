@@ -8,3 +8,5 @@
 *.gz
 *.jpg
 MovingMNIST/*
+checkpoints/*
+visualize/*
