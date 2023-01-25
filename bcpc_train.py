@@ -18,8 +18,10 @@ import torchvision.utils as vutils
 "python bcpc_train.py"
 "python bcpc_train.py --no_save"
 "python bcpc_train.py --epochs 5"
-"python bcpc_train.py --batch_size 8 --no_save"
+"python bcpc_train.py --no_save --batch_size 8"
 "python bcpc_train.py --batch_size 8 --epochs 5"
+"python bcpc_train.py --batch_size 128 --gpu 0"
+"python bcpc_train.py --batch_size 128 --gpu 0 --epochs 20 --start-epoch 10 --pretrain checkpoints/bcpc_lr0.0001_wd1e-05/epoch10.pth.tar"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
@@ -88,7 +90,7 @@ def main():
         os.makedirs(args.prefix)
 
     ckpt_folder = os.path.join(
-        args.prefix, 'bcpc_lr%s_wd%s' % (str(args.lr), str(args.wd))) 
+        args.prefix, 'bcpc_lr%s_wd%s_bs%s' % (args.lr, args.wd, args.batch_size)) 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 

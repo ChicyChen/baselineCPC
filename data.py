@@ -27,7 +27,7 @@ def get_data(transform=None, mode='train', num_seq=10, downsample=2, return_moti
                            return_motion=return_motion,
                            return_digit=return_digit)
     sampler = data.RandomSampler(dataset)
-    if mode == 'train':
+    if mode == 'train' or mode == 'train_ft':
         data_loader = data.DataLoader(dataset,
                                       batch_size=batch_size,
                                       sampler=sampler,
@@ -79,6 +79,12 @@ class Moving_MNIST(data.Dataset):
             video_info = pd.read_csv(split, header=None)
         elif mode == 'test':
             split = 'MovingMNIST/test.csv'
+            video_info = pd.read_csv(split, header=None)
+        if mode == 'train_ft':
+            split = 'MovingMNIST/train_ft.csv'
+            video_info = pd.read_csv(split, header=None)
+        elif mode == 'test_ft':
+            split = 'MovingMNIST/test_ft.csv'
             video_info = pd.read_csv(split, header=None)
         else:
             raise ValueError('wrong mode')

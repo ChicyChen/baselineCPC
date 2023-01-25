@@ -18,8 +18,16 @@ import torchvision.utils as vutils
 import torch.nn as nn
 import torch.nn.functional as F
 
+"python blcm_train.py --backbone_folder checkpoints/without_ssl --backbone_epoch 0 --batch_size 128 --epochs 10 --gpu 0"
 
-"python blcm_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --backbone_epoch 5 --epochs 2"
+
+"python blcm_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 10 --epochs 2"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.1 --batch_size 128 --backbone_epoch 10 --epochs 2 --gpu 0"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.5 --batch_size 128 --backbone_epoch 10 --epochs 2 --gpu 2"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.9 --batch_size 128 --backbone_epoch 10 --epochs 2 --gpu 3"
+
+"python blcm_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 20 --epochs 10 --gpu 3"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.0_bs8 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 0"
 
 
 
@@ -99,13 +107,13 @@ def main():
         transforms.Normalize([0.], [1.])
     ])
 
-    train_loader = get_data(transform, 'train', args.num_seq, args.downsample, return_motion=True, return_digit=False, batch_size=args.batch_size)
+    train_loader = get_data(transform, 'train_ft', args.num_seq, args.downsample, return_motion=True, return_digit=False, batch_size=args.batch_size)
     if not args.no_test:
-        test_loader = get_data(transform, 'test', args.num_seq, args.downsample, return_motion=True, return_digit=False, batch_size=args.batch_size)
+        test_loader = get_data(transform, 'test_ft', args.num_seq, args.downsample, return_motion=True, return_digit=False, batch_size=args.batch_size)
 
     # create folders
     ckpt_folder = os.path.join(
-        args.backbone_folder, 'ftmotion_lr%s_wd%s' % (args.lr, args.wd)) 
+        args.backbone_folder, 'ftmotion_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 

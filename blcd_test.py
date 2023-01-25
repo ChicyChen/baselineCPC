@@ -52,9 +52,9 @@ def main():
     global cuda
     cuda = torch.device('cuda')
 
-    model = baseline_m_lc()
+    model = baseline_d_lc()
     ckpt_folder = os.path.join(
-        args.backbone_folder, 'ftdigit_lr%s_wd%s' % (args.lr, args.wd)) 
+        args.backbone_folder, 'ftdigit_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
     checkpoint_path = os.path.join(ckpt_folder, 'epoch%s.pth.tar' % args.epoch)
     model.load_state_dict(torch.load(checkpoint_path))
 
@@ -69,7 +69,7 @@ def main():
         transforms.Normalize([0.], [1.])
     ])
 
-    test_loader = get_data(transform, 'test', args.num_seq, args.downsample, return_motion=False, return_digit=True, batch_size=args.batch_size)
+    test_loader = get_data(transform, 'test_ft', args.num_seq, args.downsample, return_motion=False, return_digit=True, batch_size=args.batch_size)
         
     test_acc = test(
         test_loader, model, criterion)

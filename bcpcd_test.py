@@ -20,6 +20,8 @@ from PIL import Image
 
 "python bcpcd_test.py"
 "python bcpcd_test.py --epoch 3"
+"python bcpcd_test.py --epoch 10 --gpu 2"
+"python bcpcd_test.py --epoch 10 --gpu 3 --la 0.1"
 
 
 parser = argparse.ArgumentParser()
@@ -56,7 +58,7 @@ def main():
     model = baseline_CPC_with_decoder(pred_step=args.pred_step, nsub=args.nsub)
 
     checkpoint_path = os.path.join(
-        args.prefix, 'bcpcd_lr%s_wd%s_la%s' % (args.lr, args.wd, args.la), 'epoch%s.pth.tar' % str(args.epoch)) 
+        args.prefix, 'bcpcd_lr%s_wd%s_la%s_bs%s' % (args.lr, args.wd, args.la, args.batch_size), 'epoch%s.pth.tar' % str(args.epoch)) 
     model.load_state_dict(torch.load(checkpoint_path))
     # print(model.state_dict())
 
@@ -82,7 +84,7 @@ def main():
     if not os.path.exists(vis_folder):
         os.makedirs(vis_folder)
 
-    test_loss = test(test_loader, model, vis_folder, args.la)
+    test_loss, test_mse = test(test_loader, model, vis_folder, args.la)
 
     print('Testing finished')
 
@@ -90,6 +92,7 @@ def main():
 def test(data_loader, model, vis_folder, la):
     global vis
     loss_list = []
+    mse_list = []
     model.eval()
     for idx, input_seq in enumerate(data_loader):
         input_seq = input_seq.to(cuda)
@@ -106,6 +109,7 @@ def test(data_loader, model, vis_folder, la):
         loss_mse = mse(input_seq[:, -pred:, :, :, :], reconst_)
         total_loss = la*loss + (1-la)*loss_mse
         loss_list.append(total_loss.cpu().detach().numpy())
+        mse_list.append(loss_mse.cpu().detach().numpy())
         if idx % 10 == 0:
             filename = os.path.join(vis_folder, '%d.png' % vis)
             visualize_pred(
@@ -113,9 +117,10 @@ def test(data_loader, model, vis_folder, la):
             vis = vis + 1
 
     mean_loss = np.mean(loss_list)
-    print('Loss:', mean_loss)
+    mean_mse = np.mean(mse_list)
+    print('Loss:', mean_loss, '; MSE:', mean_mse)
 
-    return mean_loss
+    return mean_loss, mean_mse
 
 
 

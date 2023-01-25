@@ -20,6 +20,16 @@ import torch.nn.functional as F
 
 
 "python blcd_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --backbone_epoch 5 --epochs 2"
+"python blcd_train.py --backbone_folder checkpoints/without_ssl --backbone_epoch 0 --batch_size 128 --epochs 10"
+
+"python blcd_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 10"
+"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.1 --batch_size 128 --backbone_epoch 10 --gpu 0"
+"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.5 --batch_size 128 --backbone_epoch 10 --gpu 2"
+"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.9 --batch_size 128 --backbone_epoch 10 --gpu 3"
+"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.0 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 3"
+
+"python blcd_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 20 --epochs 10 --gpu 1"
+"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.0_bs8 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 2"
 
 
 
@@ -55,7 +65,7 @@ def main():
     global cuda
     cuda = torch.device('cuda')
 
-    model = baseline_m_lc()
+    model = baseline_d_lc()
     backbone_path = os.path.join(args.backbone_folder, 'epoch%s.pth.tar' % args.backbone_epoch)
     if os.path.isfile(backbone_path):
         print("=> loading pretrained backbone '{}'".format(backbone_path))
@@ -99,13 +109,13 @@ def main():
         transforms.Normalize([0.], [1.])
     ])
 
-    train_loader = get_data(transform, 'train', args.num_seq, args.downsample, return_motion=False, return_digit=True, batch_size=args.batch_size)
+    train_loader = get_data(transform, 'train_ft', args.num_seq, args.downsample, return_motion=False, return_digit=True, batch_size=args.batch_size)
     if not args.no_test:
-        test_loader = get_data(transform, 'test', args.num_seq, args.downsample, return_motion=False, return_digit=True, batch_size=args.batch_size)
+        test_loader = get_data(transform, 'test_ft', args.num_seq, args.downsample, return_motion=False, return_digit=True, batch_size=args.batch_size)
 
     # create folders
     ckpt_folder = os.path.join(
-        args.backbone_folder, 'ftdigit_lr%s_wd%s' % (args.lr, args.wd)) 
+        args.backbone_folder, 'ftdigit_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 

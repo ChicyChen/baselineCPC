@@ -16,6 +16,13 @@ from torchvision import datasets, models, transforms
 import torchvision.utils as vutils
 
 "python bcpcd_train.py"
+"python bcpcd_train.py --no_save --batch_size 4" 
+"python bcpcd_train.py --no_save --gpu 2 --la 0.1 --batch_size 4"
+"python bcpcd_train.py --no_save --gpu 3 --la 0.9 --batch_size 4"
+"python bcpcd_train.py --batch_size 128 --gpu 1"
+"python bcpcd_train.py --batch_size 128 --gpu 2 --la 0.1"
+"python bcpcd_train.py --batch_size 128 --gpu 3 --la 0.9"
+"python bcpcd_train.py --gpu 1 --la 0 --batch_size 8"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
@@ -34,7 +41,7 @@ parser.add_argument('--epochs', default=10, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--gpu', default='0,1', type=str)
+parser.add_argument('--gpu', default='1', type=str)
 parser.add_argument('--prefix', default='checkpoints', type=str,
                     help='prefix of checkpoint filename')
 parser.add_argument('--no_test', action='store_true')
@@ -91,7 +98,7 @@ def main():
         os.makedirs(args.prefix)
 
     ckpt_folder = os.path.join(
-        args.prefix, 'bcpcd_lr%s_wd%s_la%s' % (args.lr, args.wd, args.la)) 
+        args.prefix, 'bcpcd_lr%s_wd%s_la%s_bs%s' % (args.lr, args.wd, args.la, args.batch_size)) 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 
