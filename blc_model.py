@@ -140,7 +140,10 @@ class baseline_d_lc(nn.Module):
         feature = self.genc(block)  # [B*N, code_size]
         feature = feature.view(B, N, self.code_size)
         context, _ = self.gar(feature.contiguous())
-        context = torch.mean(context, dim = 1)
+
+        # context = torch.mean(context, dim = 1)
+        context = context[:, -1, :]
+        
         # print(context.size())
         output = self.preddigit(context).view(B, 10)
         # print(output.size())

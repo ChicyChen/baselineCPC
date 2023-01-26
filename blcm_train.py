@@ -26,8 +26,23 @@ import torch.nn.functional as F
 "python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.5 --batch_size 128 --backbone_epoch 10 --epochs 2 --gpu 2"
 "python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.9 --batch_size 128 --backbone_epoch 10 --epochs 2 --gpu 3"
 
-"python blcm_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 20 --epochs 10 --gpu 3"
+
 "python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.0_bs8 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 0"
+
+
+"python blcm_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 3"
+"python blcm_train.py --backbone_folder checkpoints/without_ssl --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 2"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.0 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 1"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.1 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 1"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.5 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 0"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.9 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 0"
+
+"python blcm_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 3 --freeze"
+"python blcm_train.py --backbone_folder checkpoints/without_ssl --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 2 --freeze"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.0 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 1 --freeze"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.1 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 1 --freeze"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.5 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 0 --freeze"
+"python blcm_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.9 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 0 --freeze"
 
 
 
@@ -51,6 +66,7 @@ parser.add_argument('--start-epoch', default=0, type=int,
 parser.add_argument('--gpu', default='1', type=str)
 parser.add_argument('--no_test', action='store_true')
 parser.add_argument('--no_save', action='store_true')
+parser.add_argument('--freeze', action='store_true')
 
 
 
@@ -80,7 +96,8 @@ def main():
 
     ### optimizer ###
     params = None
-    if os.path.isfile(backbone_path):
+    # if os.path.isfile(backbone_path):
+    if not args.freeze:
         print('=> finetune backbone with smaller lr')
         params = []
         for name, param in model.named_parameters():
@@ -89,6 +106,17 @@ def main():
             else:
                 params.append({'params': param, 'lr': args.lr/10})
         print(len(params))
+    else:
+        print('=> freeze backbone')
+        params = []
+        for name, param in model.named_parameters():
+            if 'predmotion' in name:
+                params.append({'params': param})
+            else:
+                param.requires_grad = False
+                params.append({'params': param})
+        print(len(params))
+        
 
     print('\n===========Check Grad============')
     for name, param in model.named_parameters():
@@ -112,8 +140,12 @@ def main():
         test_loader = get_data(transform, 'test_ft', args.num_seq, args.downsample, return_motion=True, return_digit=False, batch_size=args.batch_size)
 
     # create folders
-    ckpt_folder = os.path.join(
-        args.backbone_folder, 'ftmotion_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+    if not args.freeze:
+        ckpt_folder = os.path.join(
+            args.backbone_folder, 'ftmotion_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+    else:
+        ckpt_folder = os.path.join(
+            args.backbone_folder, 'freeze_ftmotion_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 

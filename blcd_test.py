@@ -40,6 +40,7 @@ parser.add_argument('--backbone_epoch', default=5, type=int,
 parser.add_argument('--epoch', default=10, type=int,
                     help='number of total epochs to finetune')
 parser.add_argument('--gpu', default='1', type=str)
+parser.add_argument('--freeze', action='store_true')
 
 
 
@@ -53,8 +54,12 @@ def main():
     cuda = torch.device('cuda')
 
     model = baseline_d_lc()
-    ckpt_folder = os.path.join(
-        args.backbone_folder, 'ftdigit_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+    if not args.freeze:
+        ckpt_folder = os.path.join(
+            args.backbone_folder, 'ftdigit_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+    else:
+        ckpt_folder = os.path.join(
+            args.backbone_folder, 'freeze_ftdigit_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch))
     checkpoint_path = os.path.join(ckpt_folder, 'epoch%s.pth.tar' % args.epoch)
     model.load_state_dict(torch.load(checkpoint_path))
 
