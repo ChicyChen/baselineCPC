@@ -8,7 +8,7 @@ import matplotlib.image
 
 from data import *
 from utils import *
-from bcpc_model import *
+from baseline import *
 
 import torch
 import torch.optim as optim
@@ -18,7 +18,11 @@ import torchvision.utils as vutils
 
 from PIL import Image
 
-"python bcpcd_test_ft.py"
+"python decoder_test.py"
+"python decoder_test.py --epoch 3"
+"python decoder_test.py --epoch 10 --gpu 2"
+"python decoder_test.py --epoch 10 --gpu 3 --la 0.1"
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
@@ -35,8 +39,6 @@ parser.add_argument('--epoch', default=10, type=int)
 parser.add_argument('--gpu', default='0,1', type=str)
 parser.add_argument('--prefix', default='checkpoints', type=str,
                     help='prefix of checkpoint filename')
-parser.add_argument('--finetuned', default='checkpoints/bcpcd_lr0.0001_wd1e-05_la0.5/ftdigit_lr0.001_wd0.0001/epoch9.pth.tar', type=str,
-                    help='path of finetuned model')
 parser.add_argument('--visual', default='visualize', type=str,
                     help='visualize folder name')
 
@@ -53,14 +55,12 @@ def main():
     global vis
     vis = 0
 
-    model = baseline_CPC_with_decoder(pred_step=args.pred_step, nsub=args.nsub)
+    model = CPC_1layer_1d_static_decoder(pred_step=args.pred_step, nsub=args.nsub)
 
     checkpoint_path = os.path.join(
-        args.prefix, 'bcpcd_lr%s_wd%s_la%s' % (args.lr, args.wd, args.la), 'epoch%s.pth.tar' % str(args.epoch)) 
+        args.prefix, 'CPC_1layer_1d_static_decoder_lr%s_wd%s_la%s_bs%s' % (args.lr, args.wd, args.la, args.batch_size), 'epoch%s.pth.tar' % str(args.epoch)) 
     model.load_state_dict(torch.load(checkpoint_path))
-
-    finetuned = torch.load(args.finetuned)
-    model = neq_load_customized(model, finetuned)
+    # print(model.state_dict())
 
     # model = nn.DataParallel(model)
     model = model.to(cuda)
@@ -75,18 +75,19 @@ def main():
 
     test_loader = get_data(transform, 'test', args.num_seq, args.downsample, return_motion=False, return_digit=False, batch_size=args.batch_size)
 
-     # create folders
+    # create folders
     if not os.path.exists(args.visual):
         os.makedirs(args.visual)
 
     vis_folder = os.path.join(
-        args.visual, 'ft_bcpcd_lr%s_wd%s_la%s_epoch%s' % (args.lr, args.wd, args.la, args.epoch))
+        args.visual, 'CPC_1layer_1d_static_decoder_lr%s_wd%s_la%s_epoch%s' % (args.lr, args.wd, args.la, args.epoch))
     if not os.path.exists(vis_folder):
         os.makedirs(vis_folder)
 
     test_loss, test_mse = test(test_loader, model, vis_folder, args.la)
 
     print('Testing finished')
+
 
 def test(data_loader, model, vis_folder, la):
     global vis
@@ -120,7 +121,6 @@ def test(data_loader, model, vis_folder, la):
     print('Loss:', mean_loss, '; MSE:', mean_mse)
 
     return mean_loss, mean_mse
-
 
 
 

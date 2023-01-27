@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 
 from data import *
 from utils import *
-from bcpc_model import *
-from blc_model import *
+from baseline import *
 
 import torch
 import torch.optim as optim
@@ -19,43 +18,36 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-"python blcd_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --backbone_epoch 5 --epochs 2"
-"python blcd_train.py --backbone_folder checkpoints/without_ssl --backbone_epoch 0 --batch_size 128 --epochs 10"
 
-"python blcd_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 10"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.1 --batch_size 128 --backbone_epoch 10 --gpu 0"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.5 --batch_size 128 --backbone_epoch 10 --gpu 2"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.9 --batch_size 128 --backbone_epoch 10 --gpu 3"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.0 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 3"
+"python baseline_classify.py --motion --backbone_folder checkpoints/CPC_1layer_1d_static_lr0.0001_wd1e-05_bs128 --gpu 0 --freeze"
+"python baseline_classify.py --backbone_folder checkpoints/CPC_1layer_1d_static_lr0.0001_wd1e-05_bs128 --gpu 2 --freeze"
 
-"python blcd_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 20 --epochs 10 --gpu 1"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.0_bs8 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 2"
+"python baseline_classify.py --motion --backbone_folder checkpoints/CPC_1layer_1d_static_nossl --gpu 3 --freeze"
+"python baseline_classify.py --backbone_folder checkpoints/CPC_1layer_1d_static_nossl --gpu 3 --freeze"
 
-"python blcd_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 3"
-"python blcd_train.py --backbone_folder checkpoints/without_ssl --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 2"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.0 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 1"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.5 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 0"
+"python baseline_classify.py --motion --backbone_folder checkpoints/CPC_1layer_1d_static_decoder_lr0.0001_wd1e-05_la0.9_bs128 --gpu 0 --freeze"
+"python baseline_classify.py --backbone_folder checkpoints/CPC_1layer_1d_static_decoder_lr0.0001_wd1e-05_la0.9_bs128 --gpu 2 --freeze"
 
-"python blcd_train.py --backbone_folder checkpoints/bcpc_lr0.0001_wd1e-05 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 3 --freeze"
-"python blcd_train.py --backbone_folder checkpoints/without_ssl --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 2 --freeze"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.0 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 3 --freeze"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.1 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 3 --freeze"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.5 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 2 --freeze"
-"python blcd_train.py --backbone_folder checkpoints/bcpcd_lr0.0001_wd1e-05_la0.9 --batch_size 128 --backbone_epoch 10 --epochs 10 --gpu 2 --freeze"
+"python baseline_classify.py --motion --backbone_folder checkpoints/CPC_1layer_1d_static_decoder_lr0.0001_wd1e-05_la0.0_bs128 --gpu 0 --freeze"
+"python baseline_classify.py --backbone_folder checkpoints/CPC_1layer_1d_static_decoder_lr0.0001_wd1e-05_la0.0_bs128 --gpu 2 --freeze"
 
+"python baseline_classify.py --motion --backbone_folder checkpoints/CPC_1layer_1d_static_decoder_lr0.0001_wd1e-05_la0.1_bs128 --gpu 0 --freeze"
+"python baseline_classify.py --backbone_folder checkpoints/CPC_1layer_1d_static_decoder_lr0.0001_wd1e-05_la0.1_bs128 --gpu 2 --freeze"
 
+"python baseline_classify.py --motion --backbone_folder checkpoints/CPC_1layer_1d_static_decoder_lr0.0001_wd1e-05_la0.5_bs128 --gpu 0 --freeze"
+"python baseline_classify.py --backbone_folder checkpoints/CPC_1layer_1d_static_decoder_lr0.0001_wd1e-05_la0.5_bs128 --gpu 2 --freeze"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
                     help='number of video blocks')
 parser.add_argument('--downsample', default=2, type=int)
-parser.add_argument('--batch_size', default=4, type=int)
+parser.add_argument('--batch_size', default=128, type=int)
 parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
 parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
 
 parser.add_argument('--backbone_folder', default='checkpoints/bcpc_lr0.0001_wd1e-05', type=str,
                     help='path of pretrained backbone or model')
-parser.add_argument('--backbone_epoch', default=5, type=int,
+parser.add_argument('--backbone_epoch', default=10, type=int,
                     help='epoch of pretrained backbone or model')
 
 parser.add_argument('--epochs', default=10, type=int,
@@ -66,7 +58,7 @@ parser.add_argument('--gpu', default='1', type=str)
 parser.add_argument('--no_test', action='store_true')
 parser.add_argument('--no_save', action='store_true')
 parser.add_argument('--freeze', action='store_true')
-
+parser.add_argument('--motion', action='store_true')
 
 
 def main():
@@ -78,7 +70,11 @@ def main():
     global cuda
     cuda = torch.device('cuda')
 
-    model = baseline_d_lc()
+    if args.motion:
+        model = motion_CPC_1layer_1d_static()
+    else:
+        model = digit_CPC_1layer_1d_static()
+
     backbone_path = os.path.join(args.backbone_folder, 'epoch%s.pth.tar' % args.backbone_epoch)
     if os.path.isfile(backbone_path):
         print("=> loading pretrained backbone '{}'".format(backbone_path))
@@ -100,7 +96,7 @@ def main():
         print('=> finetune backbone with smaller lr')
         params = []
         for name, param in model.named_parameters():
-            if 'preddigit' in name:
+            if 'predmotion' in name or 'preddigit' in name:
                 params.append({'params': param})
             else:
                 params.append({'params': param, 'lr': args.lr/10})
@@ -109,12 +105,13 @@ def main():
         print('=> freeze backbone')
         params = []
         for name, param in model.named_parameters():
-            if 'preddigit' in name:
+            if 'predmotion' in name or 'preddigit' in name:
                 params.append({'params': param})
             else:
                 param.requires_grad = False
                 params.append({'params': param})
         print(len(params))
+        
 
     print('\n===========Check Grad============')
     for name, param in model.named_parameters():
@@ -133,17 +130,29 @@ def main():
         transforms.Normalize([0.], [1.])
     ])
 
-    train_loader = get_data(transform, 'train_ft', args.num_seq, args.downsample, return_motion=False, return_digit=True, batch_size=args.batch_size)
-    if not args.no_test:
-        test_loader = get_data(transform, 'test_ft', args.num_seq, args.downsample, return_motion=False, return_digit=True, batch_size=args.batch_size)
-
-    # create folders
-    if not args.freeze:
-        ckpt_folder = os.path.join(
-            args.backbone_folder, 'ftdigit_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+    if args.motion:
+        train_loader = get_data(transform, 'train_ft', args.num_seq, args.downsample, return_motion=True, return_digit=False, batch_size=args.batch_size)
+        if not args.no_test:
+            test_loader = get_data(transform, 'test_ft', args.num_seq, args.downsample, return_motion=True, return_digit=False, batch_size=args.batch_size)
+        # create folders
+        if not args.freeze:
+            ckpt_folder = os.path.join(
+                args.backbone_folder, 'ftmotion_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+        else:
+            ckpt_folder = os.path.join(
+                args.backbone_folder, 'freeze_ftmotion_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
     else:
-        ckpt_folder = os.path.join(
-            args.backbone_folder, 'freeze_ftdigit_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+        train_loader = get_data(transform, 'train_ft', args.num_seq, args.downsample, return_motion=False, return_digit=True, batch_size=args.batch_size)
+        if not args.no_test:
+            test_loader = get_data(transform, 'test_ft', args.num_seq, args.downsample, return_motion=False, return_digit=True, batch_size=args.batch_size)
+        # create folders
+        if not args.freeze:
+            ckpt_folder = os.path.join(
+                args.backbone_folder, 'ftdigit_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+        else:
+            ckpt_folder = os.path.join(
+                args.backbone_folder, 'freeze_ftdigit_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch))
+
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 
@@ -160,7 +169,7 @@ def main():
 
         if not args.no_test:
             test_acc = train(
-                train_loader, model, optimizer, epoch, train = False)
+                test_loader, model, optimizer, epoch, train = False)
             test_acc_list.append(test_acc)
             if test_acc > best_acc:
                 best_acc = test_acc
