@@ -6,11 +6,12 @@ import torch.nn.functional as F
 
 class CPC_2layer_1d_static(nn.Module):
     
-    def __init__(self, code_size=[128,128], pred_step=3, nsub=3):
+    def __init__(self, code_size=[256,256], top_size=256, pred_step=3, nsub=3):
         super().__init__()
         torch.cuda.manual_seed(233)
 
         self.code_size = code_size
+        self.top_size = top_size
         self.pred_step = pred_step
         self.nsub = nsub
         self.mask = None
@@ -40,9 +41,9 @@ class CPC_2layer_1d_static(nn.Module):
         )
 
         self.gar1 = nn.GRU(self.code_size[0], self.code_size[1], batch_first=True)
-        self.gar2 = nn.GRU(self.code_size[1], 256, batch_first=True)
+        self.gar2 = nn.GRU(self.code_size[1], self.top_size, batch_first=True)
 
-        self.pred2 = nn.Linear(256, self.code_size[1])
+        self.pred2 = nn.Linear(self.top_size, self.code_size[1])
         self.pred1 = nn.Linear(self.code_size[1], self.code_size[0])
 
         self._initialize_weights(self.gar1)
@@ -65,8 +66,7 @@ class CPC_2layer_1d_static(nn.Module):
         pred2 = []
         for i in range(self.pred_step):
             # sequentially pred future
-            p_tmp = self.pred1(hidden)
-            p_tmp = p_tmp.squeeze(0)
+            p_tmp = self.pred1(hidden.squeeze(0))
             pred.append(p_tmp)
             o_tmp, hidden = self.gar1(p_tmp.unsqueeze(1), hidden)
             o_tmp = o_tmp.squeeze(1)
@@ -128,11 +128,12 @@ class CPC_2layer_1d_static(nn.Module):
 
 class motion_CPC_2layer_1d_static(nn.Module):
     
-    def __init__(self, code_size=[128,128]):
+    def __init__(self, code_size=[256,256], top_size=256):
         super().__init__()
         torch.cuda.manual_seed(233)
 
         self.code_size = code_size
+        self.top_size = top_size
 
         self.genc = nn.Sequential(
             # (X, 3, 64, 64) -> (X, 16, 32, 32)
@@ -159,19 +160,24 @@ class motion_CPC_2layer_1d_static(nn.Module):
         )
 
         self.gar1 = nn.GRU(self.code_size[0], self.code_size[1], batch_first=True)
-        self.gar2 = nn.GRU(self.code_size[1], 256, batch_first=True)
+        self.gar2 = nn.GRU(self.code_size[1], self.top_size, batch_first=True)
 
-        self.pred2 = nn.Linear(256, self.code_size[1])
+        self.pred2 = nn.Linear(self.top_size, self.code_size[1])
         self.pred1 = nn.Linear(self.code_size[1], self.code_size[0])
 
+        # self.predmotion = nn.Sequential(
+        #     nn.Linear(256, 64),
+        #     nn.BatchNorm1d(64),
+        #     nn.ReLU(),
+        #     nn.Linear(64, 16),
+        #     nn.BatchNorm1d(16),
+        #     nn.ReLU(),
+        #     nn.Linear(16, 6),
+        # )
+
         self.predmotion = nn.Sequential(
-            nn.Linear(256, 64),
-            nn.BatchNorm1d(64),
-            nn.ReLU(),
-            nn.Linear(64, 16),
-            nn.BatchNorm1d(16),
-            nn.ReLU(),
-            nn.Linear(16, 6),
+            nn.BatchNorm1d(self.top_size),
+            nn.Linear(self.top_size, 6)
         )
 
         self._initialize_weights(self.gar1)
@@ -203,11 +209,12 @@ class motion_CPC_2layer_1d_static(nn.Module):
 
 class digit_CPC_2layer_1d_static(nn.Module):
     
-    def __init__(self, code_size=[128,128]):
+    def __init__(self, code_size=[256,256], top_size=256):
         super().__init__()
         torch.cuda.manual_seed(233)
 
         self.code_size = code_size
+        self.top_size = top_size
 
         self.genc = nn.Sequential(
             # (X, 3, 64, 64) -> (X, 16, 32, 32)
@@ -234,19 +241,24 @@ class digit_CPC_2layer_1d_static(nn.Module):
         )
 
         self.gar1 = nn.GRU(self.code_size[0], self.code_size[1], batch_first=True)
-        self.gar2 = nn.GRU(self.code_size[1], 256, batch_first=True)
+        self.gar2 = nn.GRU(self.code_size[1], self.top_size, batch_first=True)
 
-        self.pred2 = nn.Linear(256, self.code_size[1])
+        self.pred2 = nn.Linear(self.top_size, self.code_size[1])
         self.pred1 = nn.Linear(self.code_size[1], self.code_size[0])
 
+        # self.preddigit = nn.Sequential(
+        #     nn.Linear(256, 64),
+        #     nn.BatchNorm1d(64),
+        #     nn.ReLU(),
+        #     nn.Linear(64, 16),
+        #     nn.BatchNorm1d(16),
+        #     nn.ReLU(),
+        #     nn.Linear(16, 10),
+        # )
+
         self.preddigit = nn.Sequential(
-            nn.Linear(256, 64),
-            nn.BatchNorm1d(64),
-            nn.ReLU(),
-            nn.Linear(64, 16),
-            nn.BatchNorm1d(16),
-            nn.ReLU(),
-            nn.Linear(16, 10),
+            nn.BatchNorm1d(self.top_size),
+            nn.Linear(self.top_size, 10)
         )
 
         self._initialize_weights(self.gar1)
