@@ -11,5 +11,7 @@
 MovingMNIST/*
 UCF101/*
 HMDB51/*
+Kinetics400/*
 checkpoints/*
 visualize/*
+xs
