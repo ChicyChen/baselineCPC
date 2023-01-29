@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image
 # from tensorboardX import SummaryWriter
 
-from data import *
+from data_MNIST import *
 from utils import *
 from baseline import *
 

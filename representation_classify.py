@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 # from tensorboardX import SummaryWriter
 
-from data import *
+from data_MNIST import *
 from utils import *
 from representation import *
 
