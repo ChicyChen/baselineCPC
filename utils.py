@@ -14,6 +14,13 @@ import torchvision.utils as vutils
 
 from PIL import Image
 
+
+def pil_loader(path):
+    with open(path, 'rb') as f:
+        with Image.open(f) as img:
+            return img.convert('RGB')
+            
+
 def neq_load_customized(model, pretrained_dict):
     ''' load pre-trained model in a not-equal way,
     when new model has been partially modified '''
