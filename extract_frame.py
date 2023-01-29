@@ -67,6 +67,7 @@ def main_HMDB51(v_root, f_root, dim=150):
         v_paths = sorted(v_paths)
         Parallel(n_jobs=32)(delayed(extract_video_opencv)(p, f_root, dim=dim) for p in tqdm(v_paths, total=len(v_paths)))
 
+"""
 def main_kinetics400(v_root, f_root, dim=150):
     print('extracting Kinetics400 ... ')
     for basename in ['train_split', 'val_split']:
@@ -90,7 +91,7 @@ def main_kinetics400(v_root, f_root, dim=150):
             print('extracting: %s' % v_class)
             # dim = 150 (crop to 128 later) or 256 (crop to 224 later)
             Parallel(n_jobs=32)(delayed(extract_video_opencv)(p, f_root_real, dim=dim) for p in tqdm(v_paths, total=len(v_paths))) 
-
+"""
 
 if __name__ == '__main__':
     # v_root is the video source path, f_root is where to store frames
@@ -104,6 +105,3 @@ if __name__ == '__main__':
 
     # main_kinetics400(v_root='your_path/Kinetics400/videos',
     #                  f_root='your_path/Kinetics400/frame', dim=150)
-
-    # main_kinetics400(v_root='your_path/Kinetics400_256/videos',
-    #                  f_root='your_path/Kinetics400_256/frame', dim=256)

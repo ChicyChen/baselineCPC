@@ -1,6 +1,9 @@
 import os
 import csv
 import glob
+import pandas as pd
+from tqdm import tqdm 
+from joblib import delayed, Parallel
 
 def write_list(data_list, path, ):
     with open(path, 'w') as f:
@@ -11,6 +14,15 @@ def write_list(data_list, path, ):
 
 def main_UCF101(f_root, splits_root, csv_root='data/ucf101/'):
     '''generate training/testing split, count number of available frames, save in csv'''
+    # get action list
+    action_dict = {}
+    action_file = os.path.join(splits_root, 'classInd.txt')
+    action_df = pd.read_csv(action_file, sep=' ', header=None)
+    for _, row in action_df.iterrows():
+        act_id, act_name = row
+        act_id = int(act_id) - 1 # let id start from 0
+        action_dict[act_name] = act_id
+
     if not os.path.exists(csv_root): os.makedirs(csv_root)
     for which_split in [1,2,3]:
         train_set = []
@@ -18,14 +30,20 @@ def main_UCF101(f_root, splits_root, csv_root='data/ucf101/'):
         train_split_file = os.path.join(splits_root, 'trainlist%02d.txt' % which_split)
         with open(train_split_file, 'r') as f:
             for line in f:
-                vpath = os.path.join(f_root, line.split(' ')[0][0:-4]) + '/'
-                train_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg')))])
+                tmp_path = line.split(' ')[0][0:-4]
+                action_name = tmp_path.split('/')[0]
+                action_id = action_dict[action_name]
+                vpath = os.path.join(f_root, tmp_path) + '/'
+                train_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
 
         test_split_file = os.path.join(splits_root, 'testlist%02d.txt' % which_split)
         with open(test_split_file, 'r') as f:
             for line in f:
-                vpath = os.path.join(f_root, line.rstrip()[0:-4]) + '/'
-                test_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg')))])
+                tmp_path = line.split(' ')[0][0:-4]
+                action_name = tmp_path.split('/')[0]
+                action_id = action_dict[action_name]
+                vpath = os.path.join(f_root, tmp_path) + '/'
+                test_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
 
         write_list(train_set, os.path.join(csv_root, 'train_split%02d.csv' % which_split))
         write_list(test_set, os.path.join(csv_root, 'test_split%02d.csv' % which_split))
@@ -33,6 +51,8 @@ def main_UCF101(f_root, splits_root, csv_root='data/ucf101/'):
 
 def main_HMDB51(f_root, splits_root, csv_root='data/hmdb51/'):
     '''generate training/testing split, count number of available frames, save in csv'''
+    action_dict_encode = {}
+    idx = 0
     if not os.path.exists(csv_root): os.makedirs(csv_root)
     for which_split in [1,2,3]:
         train_set = []
@@ -41,19 +61,26 @@ def main_HMDB51(f_root, splits_root, csv_root='data/hmdb51/'):
         assert len(split_files) == 51
         for split_file in split_files:
             action_name = os.path.basename(split_file)[0:-16]
+
+            if idx < 51:
+                action_dict_encode[action_name] = idx
+                idx = idx + 1
+            action_id = action_dict_encode[action_name]
+
             with open(split_file, 'r') as f:
                 for line in f:
                     video_name = line.split(' ')[0]
                     _type = line.split(' ')[1]
                     vpath = os.path.join(f_root, action_name, video_name[0:-4]) + '/'
                     if _type == '1':
-                        train_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg')))])
+                        train_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
                     elif _type == '2':
-                        test_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg')))])
+                        test_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
 
         write_list(train_set, os.path.join(csv_root, 'train_split%02d.csv' % which_split))
         write_list(test_set, os.path.join(csv_root, 'test_split%02d.csv' % which_split))
 
+"""
 ### For Kinetics ###
 def get_split(root, split_path, mode):
     print('processing %s split ...' % mode)
@@ -75,9 +102,9 @@ def check_exists(row, root):
         return None
 
 def main_Kinetics400(mode, k400_path, f_root, csv_root='data/kinetics400'):
-    train_split_path = os.path.join(k400_path, 'kinetics_train/kinetics_train.csv')
-    val_split_path = os.path.join(k400_path, 'kinetics_val/kinetics_val.csv')
-    test_split_path = os.path.join(k400_path, 'kinetics_test/kinetics_test.csv')
+    train_split_path = os.path.join(k400_path, 'kinetics_train/train.csv')
+    val_split_path = os.path.join(k400_path, 'kinetics_val/validate.csv')
+    test_split_path = os.path.join(k400_path, 'kinetics_test/test.csv')
     if not os.path.exists(csv_root): os.makedirs(csv_root)
     if mode == 'train':
         train_split = get_split(os.path.join(f_root, 'train_split'), train_split_path, 'train')
@@ -90,22 +117,18 @@ def main_Kinetics400(mode, k400_path, f_root, csv_root='data/kinetics400'):
         write_list(test_split, os.path.join(csv_root, 'test_split.csv'))
     else:
         raise IOError('wrong mode')
+"""
 
 if __name__ == '__main__':
     # f_root is the frame path
     # edit 'your_path' here: 
 
-    # main_UCF101(f_root='UCF101/frame', 
-    #             splits_root='UCF101/splits_classification')
+    main_UCF101(f_root='UCF101/frame', 
+                splits_root='UCF101/splits_classification')
 
-    main_HMDB51(f_root='HMDB51/frame',
-                splits_root='HMDB51/split/testTrainMulti_7030_splits')
-
-    # main_Kinetics400(mode='train', # train or val or test
-    #                  k400_path='your_path/Kinetics',
-    #                  f_root='your_path/Kinetics400/frame')
+    # main_HMDB51(f_root='HMDB51/frame',
+    #             splits_root='HMDB51/split/testTrainMulti_7030_splits')
 
     # main_Kinetics400(mode='train', # train or val or test
-    #                  k400_path='your_path/Kinetics',
-    #                  f_root='your_path/Kinetics400_256/frame',
-    #                  csv_root='../data/kinetics400_256')
+    #                  k400_path='Kinetics',
+    #                  f_root='Kinetics400/frame')
