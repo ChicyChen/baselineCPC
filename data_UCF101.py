@@ -18,89 +18,100 @@ from utils import *
 from augmentation import *
 
 
+def get_data(transform=None, mode='train', num_seq=20, downsample=3, which_split=1, return_label=False, batch_size=16):
+    print('Loading data for "%s" ...' % mode)
+    dataset = UCF101_3d(mode=mode,
+                        transform=transform,
+                        num_seq=num_seq,
+                        downsample=downsample,
+                        which_split=which_split,
+                        return_label=return_label,
+                        )
+    sampler = data.RandomSampler(dataset)
+    if mode == 'train':
+        data_loader = data.DataLoader(dataset,
+                                      batch_size=batch_size,
+                                      sampler=sampler,
+                                      shuffle=False,
+                                      num_workers=20,
+                                      pin_memory=True,
+                                      drop_last=True)
+    else:
+        data_loader = data.DataLoader(dataset,
+                                      batch_size=batch_size,
+                                      sampler=sampler,
+                                      shuffle=False,
+                                      num_workers=20,
+                                      pin_memory=True,
+                                      drop_last=True)
+    print('"%s" dataset size: %d' % (mode, len(dataset)))
+    return data_loader
+
+
 class UCF101_3d(data.Dataset):
     def __init__(self,
                  mode='train',
                  transform=None, 
-                 seq_len=10,
-                 num_seq = 5,
+                 num_seq=20,
                  downsample=3,
-                 epsilon=5,
                  which_split=1,
                  return_label=False):
         self.mode = mode
         self.transform = transform
-        self.seq_len = seq_len
         self.num_seq = num_seq
         self.downsample = downsample
-        self.epsilon = epsilon
         self.which_split = which_split
         self.return_label = return_label
 
         # splits
         if mode == 'train':
-            split = '../process_data/data/ucf101/train_split%02d.csv' % self.which_split
+            split = 'data/ucf101/train_split%02d.csv' % self.which_split
             video_info = pd.read_csv(split, header=None)
         elif (mode == 'val') or (mode == 'test'): # use val for test
-            split = '../process_data/data/ucf101/test_split%02d.csv' % self.which_split 
+            split = 'data/ucf101/test_split%02d.csv' % self.which_split 
             video_info = pd.read_csv(split, header=None)
         else: raise ValueError('wrong mode')
-
-        # get action list
-        self.action_dict_encode = {}
-        self.action_dict_decode = {}
-        action_file = os.path.join('../process_data/data/ucf101', 'classInd.txt')
-        action_df = pd.read_csv(action_file, sep=' ', header=None)
-        for _, row in action_df.iterrows():
-            act_id, act_name = row
-            self.action_dict_decode[act_id] = act_name
-            self.action_dict_encode[act_name] = act_id
 
         # filter out too short videos:
         drop_idx = []
         for idx, row in video_info.iterrows():
-            vpath, vlen = row
-            if vlen-self.num_seq*self.seq_len*self.downsample <= 0:
+            _, vlen, _ = row
+            if vlen-self.num_seq*self.downsample <= 0:
                 drop_idx.append(idx)
         self.video_info = video_info.drop(drop_idx, axis=0)
+        print("Droped number of videos:", len(drop_idx))
 
         if mode == 'val': self.video_info = self.video_info.sample(frac=0.3)
         # shuffle not required due to external sampler
 
     def idx_sampler(self, vlen, vpath):
         '''sample index from a video'''
-        if vlen-self.num_seq*self.seq_len*self.downsample <= 0: return [None]
+        if vlen-self.num_seq*self.downsample <= 0: raise ValueError('video too short')
         n = 1
-        start_idx = np.random.choice(range(vlen-self.num_seq*self.seq_len*self.downsample), n)
-        seq_idx = np.expand_dims(np.arange(self.num_seq), -1)*self.downsample*self.seq_len + start_idx
-        seq_idx_block = seq_idx + np.expand_dims(np.arange(self.seq_len),0)*self.downsample
-        return [seq_idx_block, vpath]
+        start_idx = np.random.choice(range(vlen-self.num_seq*self.downsample), n)
+        seq_idx = np.arange(self.num_seq)*self.downsample + start_idx
+        return [seq_idx, vpath]
 
 
     def __getitem__(self, index):
-        vpath, vlen = self.video_info.iloc[index]
+        vpath, vlen, aid = self.video_info.iloc[index]
         items = self.idx_sampler(vlen, vpath)
         if items is None: print(vpath) 
         
         idx_block, vpath = items
-        assert idx_block.shape == (self.num_seq, self.seq_len)
-        idx_block = idx_block.reshape(self.num_seq*self.seq_len)
         
         seq = [pil_loader(os.path.join(vpath, 'image_%05d.jpg' % (i+1))) for i in idx_block]
         t_seq = self.transform(seq) # apply same transform
         
         (C, H, W) = t_seq[0].size()
+
+        print(C, H, W)
+
         t_seq = torch.stack(t_seq, 0)
-        t_seq = t_seq.view(self.num_seq, self.seq_len, C, H, W).transpose(1,2)
+        t_seq = t_seq.view(self.num_seq, C, H, W)
 
         if self.return_label:
-            try:
-                vname = vpath.split('/')[-3]
-                vid = self.encode_action(vname)
-            except:
-                vname = vpath.split('/')[-2]
-                vid = self.encode_action(vname)
-            label = torch.LongTensor([vid])
+            label = torch.LongTensor([aid])
             return t_seq, label
             
         return t_seq
@@ -108,10 +119,16 @@ class UCF101_3d(data.Dataset):
     def __len__(self):
         return len(self.video_info)
 
-    def encode_action(self, action_name):
-        '''give action name, return action code'''
-        return self.action_dict_encode[action_name]
 
-    def decode_action(self, action_code):
-        '''give action code, return action name'''
-        return self.action_dict_decode[action_code]
+if __name__ == '__main__':
+    transform = transforms.Compose([
+        RandomHorizontalFlip(consistent=True),
+        RandomCrop(size=128, consistent=True),
+        Scale(size=(128,128)),
+        RandomGray(consistent=False, p=0.5),
+        ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.25, p=1.0),
+        ToTensor(),
+        Normalize()
+    ])
+    train_loader = get_data(transform, 'train')
+
