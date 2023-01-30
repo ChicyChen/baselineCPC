@@ -18,14 +18,15 @@ from utils import *
 from augmentation import *
 
 
-def get_data(transform=None, mode='train', num_seq=20, downsample=3, which_split=1, return_label=False, batch_size=16):
+def get_data_ucf(transform=None, mode='train', num_seq=20, downsample=3, which_split=1, return_label=False, batch_size=16, dim=150):
     print('Loading data for "%s" ...' % mode)
-    dataset = UCF101_3d(mode=mode,
+    dataset = UCF101(mode=mode,
                         transform=transform,
                         num_seq=num_seq,
                         downsample=downsample,
                         which_split=which_split,
                         return_label=return_label,
+                        dim=dim
                         )
     sampler = data.RandomSampler(dataset)
     if mode == 'train':
@@ -48,27 +49,41 @@ def get_data(transform=None, mode='train', num_seq=20, downsample=3, which_split
     return data_loader
 
 
-class UCF101_3d(data.Dataset):
+class UCF101(data.Dataset):
     def __init__(self,
                  mode='train',
                  transform=None, 
                  num_seq=20,
                  downsample=3,
                  which_split=1,
-                 return_label=False):
+                 return_label=False,
+                 dim=150
+                 ):
         self.mode = mode
         self.transform = transform
         self.num_seq = num_seq
         self.downsample = downsample
         self.which_split = which_split
         self.return_label = return_label
+        self.dim = dim
+
+        if dim == 150:
+            folder_name = 'ucf101'
+        else:
+            folder_name = 'ucf101_240'
 
         # splits
         if mode == 'train':
-            split = 'data/ucf101/train_split%02d.csv' % self.which_split
+            if self.which_split == 0:
+                split = 'data/'+folder_name+'/train.csv'
+            else:
+                split = 'data/'+folder_name+'/train_split%02d.csv' % self.which_split
             video_info = pd.read_csv(split, header=None)
         elif (mode == 'val') or (mode == 'test'): # use val for test
-            split = 'data/ucf101/test_split%02d.csv' % self.which_split 
+            if self.which_split == 0:
+                split = 'data/'+folder_name+'/test.csv'
+            else:
+                split = 'data/'+folder_name+'/test_split%02d.csv' % self.which_split 
             video_info = pd.read_csv(split, header=None)
         else: raise ValueError('wrong mode')
 
@@ -105,7 +120,7 @@ class UCF101_3d(data.Dataset):
         
         (C, H, W) = t_seq[0].size()
 
-        print(C, H, W)
+        # print(C, H, W)
 
         t_seq = torch.stack(t_seq, 0)
         t_seq = t_seq.view(self.num_seq, C, H, W)
@@ -130,5 +145,5 @@ if __name__ == '__main__':
         ToTensor(),
         Normalize()
     ])
-    train_loader = get_data(transform, 'train')
+    train_loader = get_data_ucf(transform, 'train')
 

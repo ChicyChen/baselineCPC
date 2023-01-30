@@ -100,8 +100,16 @@ if __name__ == '__main__':
     # main_UCF101(v_root='UCF101/videos',
     #             f_root='UCF101/frame')
 
+    main_UCF101(v_root='UCF101/videos',
+                f_root='UCF101/frame_240',
+                dim = 240)
+
+    # main_HMDB51(v_root='HMDB51/videos',
+    #             f_root='HMDB51/frame')
+
     main_HMDB51(v_root='HMDB51/videos',
-                f_root='HMDB51/frame')
+                f_root='HMDB51/frame_240',
+                dim = 240)
 
     # main_kinetics400(v_root='your_path/Kinetics400/videos',
     #                  f_root='your_path/Kinetics400/frame', dim=150)
