@@ -34,7 +34,7 @@ def get_data_hmdb(transform=None, mode='train', num_seq=20, downsample=3, which_
                                       batch_size=batch_size,
                                       sampler=sampler,
                                       shuffle=False,
-                                      num_workers=20,
+                                      num_workers=4,
                                       pin_memory=True,
                                       drop_last=True)
     else:
@@ -42,7 +42,7 @@ def get_data_hmdb(transform=None, mode='train', num_seq=20, downsample=3, which_
                                       batch_size=batch_size,
                                       sampler=sampler,
                                       shuffle=False,
-                                      num_workers=20,
+                                      num_workers=4,
                                       pin_memory=True,
                                       drop_last=True)
     print('"%s" dataset size: %d' % (mode, len(dataset)))
