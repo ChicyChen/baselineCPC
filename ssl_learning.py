@@ -30,13 +30,13 @@ parser.add_argument('--dataset', default='ucf240', type=str,
 parser.add_argument('--which_split', default=0, type=int,
                     help='split index, 0 means using full dataset')
 
-parser.add_argument('--num_seq', default=20, type=int,
+parser.add_argument('--num_seq', default=15, type=int,
                     help='number of frames in a seq')
 parser.add_argument('--downsample', default=3, type=int)
 parser.add_argument('--pred_step', default=5, type=int)
 parser.add_argument('--nsub', default=5, type=int)
 
-parser.add_argument('--batch_size', default=64, type=int)
+parser.add_argument('--batch_size', default=32, type=int)
 parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
 parser.add_argument('--wd', default=1e-5, type=float, help='weight decay')
 
@@ -51,6 +51,7 @@ parser.add_argument('--prefix', default='checkpoints', type=str,
                     help='prefix of checkpoint filename')
 parser.add_argument('--no_val', action='store_true')
 parser.add_argument('--no_save', action='store_true')
+parser.add_argument('--useout', action='store_true')
 
 
 def main():
@@ -66,7 +67,10 @@ def main():
     if args.model == 0:
         model = CPC_1layer_1d_static(pred_step=args.pred_step, nsub=args.nsub)
     elif args.model == 1:
-        model = CPC_1layer_2d_static(pred_step=args.pred_step, nsub=args.nsub)
+        model = CPC_1layer_2d_static(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout)
+
+    model = nn.DataParallel(model)
+    model = model.to(cuda)
 
     if args.pretrain:
         if os.path.isfile(args.pretrain):
@@ -75,9 +79,6 @@ def main():
             print("model loaded.")
         else:
             print("=> no checkpoint found at '{}'".format(args.pretrain))
-
-    model = nn.DataParallel(model)
-    model = model.to(cuda)
 
     global criterion
     criterion = nn.CrossEntropyLoss()
@@ -126,7 +127,7 @@ def main():
     elif args.model == 1:
         model_name = '1layer_2dGRU_static'
     ckpt_folder = os.path.join(
-        args.prefix, '%s_split%s_%s_lr%s_wd%s_bs%s' % (args.dataset, args.which_split, model_name, args.lr, args.wd, args.batch_size)) 
+        args.prefix, '%s_split%s_%s_uo%s_lr%s_wd%s_bs%s' % (args.dataset, args.which_split, model_name, args.useout, args.lr, args.wd, args.batch_size)) 
 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)

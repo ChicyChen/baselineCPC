@@ -20,8 +20,9 @@ import torchvision.utils as vutils
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-
+"python action_recognation.py --backbone_folder checkpoints/ucf240_split0_1layer_2dGRU_static_nossl"
+"python action_recognation.py --freeze --backbone_folder checkpoints/ucf240_split0_1layer_2dGRU_static_nossl"
+"python action_recognation.py --epochs 30 --start-epoch 20 --pretrain checkpoints/ucf240_split0_1layer_2dGRU_static_lr0.0001_wd1e-05_bs32/finetune_hmdb240_lr0.001_wd0.0001_ep10/epoch20.pth.tar"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default=1, type=int,
@@ -31,18 +32,20 @@ parser.add_argument('--dataset', default='hmdb240', type=str,
                     help='dataset name')
 parser.add_argument('--which_split', default=0, type=int)
 
-parser.add_argument('--num_seq', default=20, type=int,
+parser.add_argument('--num_seq', default=15, type=int,
                     help='number of video blocks')
 parser.add_argument('--downsample', default=3, type=int)
-parser.add_argument('--batch_size', default=64, type=int)
+parser.add_argument('--batch_size', default=32, type=int)
 parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
 parser.add_argument('--wd', default=1e-4, type=float, help='weight decay')
 
-parser.add_argument('--backbone_folder', default='checkpoints/ucf_1layer_1d_static_lr0.0001_wd1e-05_bs64', type=str,
+parser.add_argument('--backbone_folder', default='checkpoints/ucf240_split0_1layer_2dGRU_static_lr0.0001_wd1e-05_bs32', type=str,
                     help='path of pretrained backbone or model')
 parser.add_argument('--backbone_epoch', default=10, type=int,
                     help='epoch of pretrained backbone or model')
 
+parser.add_argument('--pretrain', default='', type=str,
+                    help='path of pretrained model')
 parser.add_argument('--epochs', default=10, type=int,
                     help='number of total epochs to finetune')
 parser.add_argument('--start-epoch', default=0, type=int,
@@ -69,21 +72,27 @@ def main():
             model = action_CPC_1layer_1d_static(class_num = 51)
     elif args.model == 1:
         if args.dataset == 'ucf240':
-            model = action_CPC_1layer_2d_static(class_num = 101) # TODO: implement
+            model = action_CPC_1layer_2d_static(class_num = 101)
         if args.dataset == 'hmdb240':
             model = action_CPC_1layer_2d_static(class_num = 51)
 
-    backbone_path = os.path.join(args.backbone_folder, 'epoch%s.pth.tar' % args.backbone_epoch)
-    if os.path.isfile(backbone_path):
-        print("=> loading pretrained backbone '{}'".format(backbone_path))
-        backbone = torch.load(backbone_path)
-        model = neq_load_customized(model, backbone)
-        print("backbone loaded.")
-    else:
-        print("=> no backbone found at '{}'".format(backbone_path))
-
     model = nn.DataParallel(model)
     model = model.to(cuda)
+
+    if args.pretrain and os.path.isfile(args.pretrain):
+        print("=> loading pretrained checkpoint '{}'".format(args.pretrain))
+        model.load_state_dict(torch.load(args.pretrain))
+        print("model loaded.")
+    else:
+        backbone_path = os.path.join(args.backbone_folder, 'epoch%s.pth.tar' % args.backbone_epoch)
+        if os.path.isfile(backbone_path):
+            print("=> loading pretrained backbone '{}'".format(backbone_path))
+            backbone = torch.load(backbone_path)
+            model = neq_load_customized(model, backbone)
+            print("backbone loaded.")
+        else:
+            print("=> no backbone found at '{}'".format(backbone_path))
+    
 
     global criterion
     criterion = nn.CrossEntropyLoss()
@@ -122,16 +131,16 @@ def main():
 
     optimizer = optim.Adam(params, lr=args.lr, weight_decay=args.wd)
 
-    transform = transforms.Compose([
-        RandomSizedCrop(consistent=True, size=224, p=1.0),
-        Scale(size=(128,128)),
-        RandomHorizontalFlip(consistent=True),
-        ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.25, p=0.3, consistent=True),
-        ToTensor(),
-        Normalize()
-    ])
 
     if args.dataset == 'ucf':
+        transform = transforms.Compose([
+            RandomSizedCrop(consistent=True, size=128, p=1.0),
+            Scale(size=(128,128)),
+            RandomHorizontalFlip(consistent=True),
+            ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.25, p=0.3, consistent=True),
+            ToTensor(),
+            Normalize()
+        ])
         train_loader = get_data_ucf(transform, 'train', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size)
         if not args.no_val:
             test_loader = get_data_ucf(transform, 'val', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size)
@@ -144,6 +153,14 @@ def main():
                 args.backbone_folder, 'freeze_ucf_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
 
     if args.dataset == 'hmdb':
+        transform = transforms.Compose([
+            RandomSizedCrop(consistent=True, size=128, p=1.0),
+            Scale(size=(128,128)),
+            RandomHorizontalFlip(consistent=True),
+            ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.25, p=0.3, consistent=True),
+            ToTensor(),
+            Normalize()
+        ])
         train_loader = get_data_hmdb(transform, 'train', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size)
         if not args.no_val:
             test_loader = get_data_hmdb(transform, 'val', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size)
@@ -154,6 +171,46 @@ def main():
         else:
             ckpt_folder = os.path.join(
                 args.backbone_folder, 'freeze_hmdb_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch))
+
+    if args.dataset == 'ucf240':
+        transform = transforms.Compose([
+            RandomSizedCrop(consistent=True, size=224, p=1.0),
+            Scale(size=(224,224)),
+            RandomHorizontalFlip(consistent=True),
+            ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.25, p=0.3, consistent=True),
+            ToTensor(),
+            Normalize()
+        ])
+        train_loader = get_data_ucf(transform, 'train', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size, dim = 240)
+        if not args.no_val:
+            test_loader = get_data_ucf(transform, 'val', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size, dim = 240)
+        # create folders
+        if not args.freeze:
+            ckpt_folder = os.path.join(
+                args.backbone_folder, 'finetune_ucf240_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+        else:
+            ckpt_folder = os.path.join(
+                args.backbone_folder, 'freeze_ucf240_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+
+    if args.dataset == 'hmdb240':
+        transform = transforms.Compose([
+            RandomSizedCrop(consistent=True, size=224, p=1.0),
+            Scale(size=(224,224)),
+            RandomHorizontalFlip(consistent=True),
+            ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.25, p=0.3, consistent=True),
+            ToTensor(),
+            Normalize()
+        ])
+        train_loader = get_data_hmdb(transform, 'train', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size, dim = 240)
+        if not args.no_val:
+            test_loader = get_data_hmdb(transform, 'val', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size, dim = 240)
+        # create folders
+        if not args.freeze:
+            ckpt_folder = os.path.join(
+                args.backbone_folder, 'finetune_hmdb240_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+        else:
+            ckpt_folder = os.path.join(
+                args.backbone_folder, 'freeze_hmdb240_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch))
 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
