@@ -24,7 +24,8 @@ import torchvision.utils as vutils
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default=1, type=int,
                     help='model type, 0 for (1layer, 1d, static); \
-                    1 for (1layer, 2d ConvGRU, static)')
+                        1 for (1layer, 2d ConvGRU, static); \
+                        2 for (2layer, 2d ConvGRU, static B2)')
 parser.add_argument('--dataset', default='ucf240', type=str,
                     help='dataset name')
 parser.add_argument('--which_split', default=0, type=int,
@@ -68,6 +69,12 @@ def main():
         model = CPC_1layer_1d_static(pred_step=args.pred_step, nsub=args.nsub)
     elif args.model == 1:
         model = CPC_1layer_2d_static(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout)
+    elif args.model == 2:
+        model = CPC_2layer_2d_static_B2(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout)
+    elif args.model == 3:
+        model = CPC_2layer_2d_static_B1(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout)
+    elif args.model == 4:
+        model = CPC_2layer_2d_static_C(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout)
 
     model = nn.DataParallel(model)
     model = model.to(cuda)
@@ -126,6 +133,13 @@ def main():
         model_name = '1layer_1d_static'
     elif args.model == 1:
         model_name = '1layer_2dGRU_static'
+    elif args.model == 2:
+        model_name = '2layer_2dGRU_static_B2'
+    elif args.model == 3:
+        model_name = '2layer_2dGRU_static_B1'
+    elif args.model == 4:
+        model_name = '2layer_2dGRU_static_C'
+
     ckpt_folder = os.path.join(
         args.prefix, '%s_split%s_%s_uo%s_lr%s_wd%s_bs%s' % (args.dataset, args.which_split, model_name, args.useout, args.lr, args.wd, args.batch_size)) 
 
@@ -140,12 +154,12 @@ def main():
 
     # start training
     for epoch in epoch_list:
-        train_loss = train(
+        train_loss = train_v2(
             train_loader, model, optimizer, epoch)
         train_loss_list.append(train_loss)
 
         if not args.no_val:
-            test_loss = train(
+            test_loss = train_v2(
                 test_loader, model, optimizer, epoch, False)
             test_loss_list.append(test_loss)
             if test_loss < lowest_loss:
@@ -191,6 +205,34 @@ def train(data_loader, model, optimizer, epoch, train = True):
         input_seq = input_seq.to(cuda)
         [score, mask] = model(input_seq)
         loss = criterion(score, mask)
+        if train:
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        else:
+            pass
+        loss_list.append(loss.cpu().detach().numpy())
+
+    mean_loss = np.mean(loss_list)
+    if train:
+        print('Epoch:', epoch, '; Train loss:', mean_loss)
+    else:
+        print('Epoch:', epoch, '; Validation loss:', mean_loss)
+
+    return mean_loss
+
+
+def train_v2(data_loader, model, optimizer, epoch, train = True):
+    if train:
+        model.train()
+    else:
+        model.eval()
+
+    loss_list = []
+
+    for _, input_seq in enumerate(data_loader):
+        input_seq = input_seq.to(cuda)
+        loss = model(input_seq)
         if train:
             optimizer.zero_grad()
             loss.backward()
