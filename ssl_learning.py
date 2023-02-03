@@ -53,7 +53,8 @@ parser.add_argument('--prefix', default='checkpoints', type=str,
                     help='prefix of checkpoint filename')
 parser.add_argument('--no_val', action='store_true')
 parser.add_argument('--no_save', action='store_true')
-parser.add_argument('--useout', action='store_true')
+parser.add_argument('--usehidden', action='store_true')
+parser.add_argument('--seeall', action='store_true')
 
 
 def main():
@@ -62,6 +63,7 @@ def main():
 
     global args
     args = parser.parse_args()
+    args.useout = (not args.usehidden)
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     global cuda
     cuda = torch.device('cuda')
@@ -71,9 +73,9 @@ def main():
     elif args.model == 1:
         model = CPC_1layer_2d_static(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout)
     elif args.model == 2:
-        model = CPC_2layer_2d_static_B1(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout)
+        model = CPC_2layer_2d_static_B1(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout, seeall=args.seeall)
     elif args.model == 3:
-        model = CPC_2layer_2d_static_B2(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout)
+        model = CPC_2layer_2d_static_B2(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout, seeall=args.seeall)
 
     model = nn.DataParallel(model)
     # model = nn.parallel.DistributedDataParallel(model)
@@ -139,7 +141,7 @@ def main():
         model_name = '2layer_2dGRU_static_B2'
 
     ckpt_folder = os.path.join(
-        args.prefix, '%s_split%s_%s_uo%s_lr%s_wd%s_bs%s' % (args.dataset, args.which_split, model_name, args.useout, args.lr, args.wd, args.batch_size)) 
+        args.prefix, '%s_split%s_%s_uo%s_sa%s_lr%s_wd%s_bs%s' % (args.dataset, args.which_split, model_name, args.useout, args.seeall, args.lr, args.wd, args.batch_size)) 
 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
