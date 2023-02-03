@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from data_UCF101 import *
 from data_HMDB51 import *
 from model import *
+from model_B import *
+from model_A import *
 
 from utils import *
 from augmentation import *
@@ -22,7 +24,7 @@ import torch.nn.functional as F
 
 "python action_recognation.py --backbone_folder checkpoints/ucf240_split0_1layer_2dGRU_static_nossl"
 "python action_recognation.py --freeze --backbone_folder checkpoints/ucf240_split0_1layer_2dGRU_static_nossl"
-"python action_recognation.py --epochs 30 --start-epoch 20 --pretrain checkpoints/ucf240_split0_1layer_2dGRU_static_lr0.0001_wd1e-05_bs32/finetune_hmdb240_lr0.001_wd0.0001_ep10/epoch20.pth.tar"
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default=1, type=int,
@@ -84,6 +86,16 @@ def main():
             model = action_CPC_2layer_2d_static_B2(class_num = 101)
         if args.dataset == 'hmdb240':
             model = action_CPC_2layer_2d_static_B2(class_num = 51)
+    elif args.model == 4:
+        if args.dataset == 'ucf240':
+            model = action_CPC_2layer_2d_static_A1(class_num = 101)
+        if args.dataset == 'hmdb240':
+            model = action_CPC_2layer_2d_static_A1(class_num = 51)
+    elif args.model == 5:
+        if args.dataset == 'ucf240':
+            model = action_CPC_2layer_2d_static_A2(class_num = 101)
+        if args.dataset == 'hmdb240':
+            model = action_CPC_2layer_2d_static_A2(class_num = 51)
 
     model = nn.DataParallel(model)
     model = model.to(cuda)
