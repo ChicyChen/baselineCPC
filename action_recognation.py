@@ -26,8 +26,7 @@ import torch.nn.functional as F
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default=1, type=int,
-                    help='model type, 0 for (1layer, 1d, static); \
-                    1 for (1layer, 2d ConvGRU, static)')
+                    help='model type')
 parser.add_argument('--dataset', default='hmdb240', type=str,
                     help='dataset name')
 parser.add_argument('--which_split', default=0, type=int)
@@ -75,6 +74,16 @@ def main():
             model = action_CPC_1layer_2d_static(class_num = 101)
         if args.dataset == 'hmdb240':
             model = action_CPC_1layer_2d_static(class_num = 51)
+    elif args.model == 2:
+        if args.dataset == 'ucf240':
+            model = action_CPC_2layer_2d_static_B1(class_num = 101)
+        if args.dataset == 'hmdb240':
+            model = action_CPC_2layer_2d_static_B1(class_num = 51)
+    elif args.model == 3:
+        if args.dataset == 'ucf240':
+            model = action_CPC_2layer_2d_static_B2(class_num = 101)
+        if args.dataset == 'hmdb240':
+            model = action_CPC_2layer_2d_static_B2(class_num = 51)
 
     model = nn.DataParallel(model)
     model = model.to(cuda)

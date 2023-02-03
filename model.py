@@ -16,7 +16,7 @@ def main():
     global cuda
     cuda = torch.device('cuda')
 
-    model = CPC_2layer_2d_static_B2()
+    model = CPC_2layer_2d_static_C()
 
     model = nn.DataParallel(model)
     model = model.to(cuda)
@@ -34,12 +34,13 @@ def main():
 
     for _, input_seq in enumerate(train_loader):
         input_seq = input_seq.to(cuda)
-        out = model(input_seq)
-        # print(out.size())
+        loss = model(input_seq)
+        print(loss.size())
+        sys.exit("test end.") 
 
 
-class CPC_2layer_2d_static_C(nn.Module):
-    def __init__(self, code_size=[512, 512], pred_step=3, nsub=3, useout=False):
+class CPC_2layer_2d_static_B2(nn.Module):
+    def __init__(self, code_size=[512, 512], pred_step=3, nsub=3, useout=False, seeall=False):
         super().__init__()
         torch.cuda.manual_seed(233)
 
@@ -47,6 +48,7 @@ class CPC_2layer_2d_static_C(nn.Module):
         self.pred_step = pred_step
         self.nsub = nsub
         self.useout = useout
+        self.seeall = seeall
         self.mask1 = None
         self.mask2 = None
         self.criterion = nn.CrossEntropyLoss()
@@ -115,53 +117,57 @@ class CPC_2layer_2d_static_C(nn.Module):
         feature2 = feature2.view(B, N, self.code_size[1], 7, 7)
 
         # test use output for prediction instead of hidden states
-        if self.useout:
-            output1, hidden1 = self.auto_agressive1(feature1[:, 0:N-self.pred_step, :].contiguous())
-            output1 = output1[-1][:,-1,:]
-            output2, hidden2 = self.auto_agressive2(feature2[:, 0:N-self.pred_step, :].contiguous())
-            output2 = output2[-1][:,-1,:]
-        else:
-            _, hidden1 = self.auto_agressive1(feature1[:, 0:N-self.pred_step, :].contiguous())
-            _, hidden2 = self.auto_agressive2(feature2[:, 0:N-self.pred_step, :].contiguous())
+        # if self.useout:
+        output1, hidden1 = self.auto_agressive1(feature1[:, 0:N-self.pred_step, :].contiguous())
+        # output1[-1]: B, N, self.code_size[0], 7, 7
+        output1 = output1[-1][:,-1,:]
+        output2, hidden2 = self.auto_agressive2(feature2[:, 0:N-self.pred_step, :].contiguous())
+        output2 = output2[-1][:,-1,:]
+        # else:
+        #     _, hidden1 = self.auto_agressive1(feature1[:, 0:N-self.pred_step, :].contiguous())
+        #     _, hidden2 = self.auto_agressive2(feature2[:, 0:N-self.pred_step, :].contiguous())
 
-        pred1 = []
-        pred2 = []
-        for i in range(self.pred_step):
-            # sequentially pred future
-            if self.useout:
+        if self.seeall:
+            output1, _ = self.auto_agressive1(feature1)
+            output1 = output1[-1].view(B*N, self.code_size[0], 7, 7) # B, N, self.code_size[0], 7, 7
+            output2, _ = self.auto_agressive2(feature2)
+            output2 = output2[-1].view(B*N, self.code_size[1], 7, 7)
+            pred1 = self.latent_pred1(output1).view(B, N, self.code_size[0], 7, 7)
+            pred2 = self.latent_pred2(output2).view(B, N, self.code_size[1], 7, 7)
+        else:
+            pred1 = []
+            pred2 = []
+            for i in range(self.pred_step):
+                # sequentially pred future
+                # if self.useout:
                 p_tmp1 = self.latent_pred1(output1)
                 p_tmp2 = self.latent_pred2(output2)
-            else:
-                p_tmp1 = self.latent_pred1(hidden1[-1])
-                p_tmp2 = self.latent_pred2(hidden2[-1])
-
-            # p_tmp.size(): B, 512, 7, 7
-            pred1.append(p_tmp1)
-            pred2.append(p_tmp2)
-
-            if self.useout:
+                # else:
+                #     p_tmp1 = self.latent_pred1(hidden1[-1])
+                #     p_tmp2 = self.latent_pred2(hidden2[-1])
+                # p_tmp.size(): B, 512, 7, 7
+                pred1.append(p_tmp1)
+                pred2.append(p_tmp2)
+                # if self.useout:
                 output1, hidden1 = self.auto_agressive1(p_tmp1.unsqueeze(1), hidden1)
                 output1 = output1[-1][:,-1,:]
                 output2, hidden2 = self.auto_agressive2(p_tmp2.unsqueeze(1), hidden2)
                 output2 = output2[-1][:,-1,:]
-            else:
-                _, hidden1 = self.auto_agressive1(p_tmp1.unsqueeze(1), hidden1)
-                _, hidden2 = self.auto_agressive2(p_tmp2.unsqueeze(1), hidden2)
-
-        pred1 = torch.stack(pred1, 1)  # B, pred_step, 256, 14, 14
-        pred2 = torch.stack(pred2, 1)  # B, pred_step, 512, 7, 7
+                # else:
+                #     _, hidden1 = self.auto_agressive1(p_tmp1.unsqueeze(1), hidden1)
+                #     _, hidden2 = self.auto_agressive2(p_tmp2.unsqueeze(1), hidden2)
+            pred1 = torch.stack(pred1, 1)  # B, pred_step, 512, 7, 7
+            pred2 = torch.stack(pred2, 1)  # B, pred_step, 512, 7, 7
 
         N_sub = self.nsub  # cobtrol number of negative pairs
         feature_sub1 = feature1[:, N-N_sub:, :].contiguous()
         similarity1 = torch.matmul(
             pred1.permute(0,1,3,4,2).contiguous().view(B*self.pred_step*7*7, self.code_size[0]), 
             feature_sub1.permute(0,1,3,4,2).contiguous().view(B*N_sub*7*7, self.code_size[0]).transpose(0, 1))
-
         feature_sub2 = feature2[:, N-N_sub:, :].contiguous()
         similarity2 = torch.matmul(
             pred2.permute(0,1,3,4,2).contiguous().view(B*self.pred_step*7*7, self.code_size[1]), 
             feature_sub2.permute(0,1,3,4,2).contiguous().view(B*N_sub*7*7, self.code_size[1]).transpose(0, 1))
-        
         
         if self.mask1 is None:
             mask1 = torch.zeros((B, self.pred_step, 7*7, B, N_sub, 7*7), dtype=torch.int8, requires_grad=False).detach().cuda()
@@ -180,6 +186,19 @@ class CPC_2layer_2d_static_C(nn.Module):
         loss = self.criterion(similarity1, self.mask1) + self.criterion(similarity2, self.mask2)
 
         return loss
+
+    
+    def _initialize_weights(self, module):
+        for name, param in module.named_parameters():
+            if 'bias' in name:
+                nn.init.constant_(param, 0.0)
+            elif 'weight' in name:
+                nn.init.orthogonal_(param, 1)
+
+    def reset_mask(self):
+        self.mask1 = None
+        self.mask2 = None
+        
 
 
 class CPC_2layer_2d_static_B1(nn.Module):
@@ -333,8 +352,8 @@ class CPC_2layer_2d_static_B1(nn.Module):
         self.mask1 = None
         self.mask2 = None
 
-
-class CPC_2layer_2d_static_B2(nn.Module):
+"""
+class CPC_2layer_2d_static_B3(nn.Module):
     def __init__(self, code_size=[128, 512], pred_step=3, nsub=3, useout=False):
         super().__init__()
         torch.cuda.manual_seed(233)
@@ -447,12 +466,13 @@ class CPC_2layer_2d_static_B2(nn.Module):
         similarity1 = torch.matmul(
             pred1.permute(0,1,3,4,2).contiguous().view(B*self.pred_step*28*28, self.code_size[0]), 
             feature_sub1.permute(0,1,3,4,2).contiguous().view(B*N_sub*28*28, self.code_size[0]).transpose(0, 1))
+        del feature1, feature_sub1
 
         feature_sub2 = feature2[:, N-N_sub:, :].contiguous()
         similarity2 = torch.matmul(
             pred2.permute(0,1,3,4,2).contiguous().view(B*self.pred_step*7*7, self.code_size[1]), 
             feature_sub2.permute(0,1,3,4,2).contiguous().view(B*N_sub*7*7, self.code_size[1]).transpose(0, 1))
-        
+        del feature2, feature_sub2
         
         if self.mask1 is None:
             mask1 = torch.zeros((B, self.pred_step, 28*28, B, N_sub, 28*28), dtype=torch.int8, requires_grad=False).detach().cuda()
@@ -470,7 +490,12 @@ class CPC_2layer_2d_static_B2(nn.Module):
             # print(torch.sum(mask))
             # sys.exit("test end.") 
             # print(similarity.size(), self.mask.size())
-        
+
+        # print(similarity1.size(), self.mask1.size())
+        # loss1 = self.criterion(similarity1, self.mask1)
+        # loss2 = self.criterion(similarity2, self.mask2)
+        # print(loss1, loss2)
+
         loss = self.criterion(similarity1, self.mask1) + self.criterion(similarity2, self.mask2)
         return loss
 
@@ -484,7 +509,7 @@ class CPC_2layer_2d_static_B2(nn.Module):
     def reset_mask(self):
         self.mask1 = None
         self.mask2 = None
-
+"""
 
 class CPC_1layer_2d_static(nn.Module):
     def __init__(self, code_size=512, top_size=512, pred_step=3, nsub=3, useout=False):
@@ -515,11 +540,11 @@ class CPC_1layer_2d_static(nn.Module):
             ResNetLayer(BasicBlock, 2, inplanes=256, planes=512, stride=2)
             # ResNetLayer(BasicBlock, 2, inplanes=256, planes=256, stride=2)   # In DPC, final layer does not have a larger channel number
         )
-        # (X, 512, 7, 7) -> (X, 512, ?, ?)
+        # (X, 512, 7, 7) -> (X, 512, 7, 7)
         self.auto_agressive = ConvGRU(in_channels=512, hidden_channels=512, kernel_size=(1,1), num_layers=1,
             batch_first=True, bias=True, return_all_layers=False
         )
-        # (X, 512, ?, ?) -> (X, 512, ?, ?)
+        # (X, 512, 7, 7) -> (X, 512, 7, 7)
         self.latent_pred = nn.Sequential(
             nn.Conv2d(512, 512, kernel_size=1, padding=0),
             nn.ReLU(inplace=True),
@@ -721,7 +746,7 @@ class CPC_1layer_1d_static(nn.Module):
 
 
 
-class action_CPC_2layer_2d_static_C(nn.Module):
+class action_CPC_2layer_2d_static_B2(nn.Module):
     def __init__(self, code_size=[512, 512]):
         super().__init__()
         torch.cuda.manual_seed(233)
@@ -917,8 +942,8 @@ class action_CPC_2layer_2d_static_B1(nn.Module):
                 nn.init.orthogonal_(param, 1)
 
 
-
-class action_CPC_2layer_2d_static_B2(nn.Module):
+"""
+class action_CPC_2layer_2d_static_B3(nn.Module):
     def __init__(self, code_size=[128, 512]):
         super().__init__()
         torch.cuda.manual_seed(233)
@@ -1011,7 +1036,7 @@ class action_CPC_2layer_2d_static_B2(nn.Module):
                 nn.init.constant_(param, 0.0)
             elif 'weight' in name:
                 nn.init.orthogonal_(param, 1)
-
+"""
 
 class action_CPC_1layer_2d_static(nn.Module):
     def __init__(self, code_size=512, top_size=512, class_num=101):
