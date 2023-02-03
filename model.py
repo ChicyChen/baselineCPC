@@ -10,7 +10,7 @@ from backbone import *
 from auto_aggressive import *
 
 
-# baseline
+# baseline 2D
 class CPC_1layer_2d_static(nn.Module):
     def __init__(self, code_size=512, top_size=512, pred_step=3, nsub=3, useout=False):
         super().__init__()
@@ -304,7 +304,7 @@ class action_CPC_1layer_2d_static(nn.Module):
         # print(output.size())
         # sys.exit("test end.") 
         
-        return [output, context]
+        return output
 
     def _initialize_weights(self, module):
         for name, param in module.named_parameters():
@@ -375,7 +375,7 @@ class action_CPC_1layer_1d_static(nn.Module):
         context = context[:, -1, :]
         output = self.predhead(context).view(B, self.class_num)
 
-        return [output, context]
+        return output
 
 
     def _initialize_weights(self, module):

@@ -41,6 +41,7 @@ def main():
         sys.exit("test end.") 
 
 
+# hierarchical B2
 class CPC_2layer_2d_static_B2(nn.Module):
     def __init__(self, code_size=[512, 512], pred_step=3, nsub=3, useout=False, seeall=False):
         super().__init__()
@@ -187,7 +188,7 @@ class CPC_2layer_2d_static_B2(nn.Module):
         self.mask2 = None
         
 
-
+# hierarchical B1
 class CPC_2layer_2d_static_B1(nn.Module):
     def __init__(self, code_size=[256, 512], pred_step=3, nsub=3, useout=False, seeall=False):
         super().__init__()
@@ -331,11 +332,12 @@ class CPC_2layer_2d_static_B1(nn.Module):
 
 
 class action_CPC_2layer_2d_static_B2(nn.Module):
-    def __init__(self, code_size=[512, 512]):
+    def __init__(self, code_size=[512, 512], class_num=101):
         super().__init__()
         torch.cuda.manual_seed(233)
 
         self.code_size = code_size
+        self.class_num = class_num
 
         self.net_pre = nn.Sequential(
             # (X, 3, 224, 224) -> (X, 64, 112, 112)
@@ -434,11 +436,12 @@ class action_CPC_2layer_2d_static_B2(nn.Module):
 
 
 class action_CPC_2layer_2d_static_B1(nn.Module):
-    def __init__(self, code_size=[256, 512]):
+    def __init__(self, code_size=[256, 512], class_num=101):
         super().__init__()
         torch.cuda.manual_seed(233)
 
         self.code_size = code_size
+        self.class_num = class_num
 
         self.net_pre = nn.Sequential(
             # (X, 3, 224, 224) -> (X, 64, 112, 112)

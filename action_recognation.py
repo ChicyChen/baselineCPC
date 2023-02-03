@@ -297,7 +297,7 @@ def train(data_loader, model, optimizer, epoch, train):
         B = input_seq.size(0)
         motion_lb = motion_lb.view(B,)
 
-        [output, _] = model(input_seq)
+        output = model(input_seq)
 
         loss = criterion(output, motion_lb)
         acc = calc_accuracy(output, motion_lb)
