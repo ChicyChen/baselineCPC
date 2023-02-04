@@ -1,20 +1,13 @@
 #!/bin/bash
 
-SSLEPOCH=10
+bbepoch=10
 # 2layer_2dGRU_static_B1
-python ssl_learning.py --epochs $SSLEPOCH --model 2 --seeall
+python ssl_learning.py --epochs $bbepoch --model 2 --seeall
 # 2layer_2dGRU_static_B2
-python ssl_learning.py --epochs $SSLEPOCH --model 3 --seeall
+python ssl_learning.py --epochs $bbepoch --model 3 --seeall
 # 2layer_2dGRU_static_A1
-python ssl_learning.py --epochs $SSLEPOCH --model 4 --seeall
+python ssl_learning.py --epochs $bbepoch --model 4 --seeall
 # 2layer_2dGRU_static_A2
-python ssl_learning.py --epochs $SSLEPOCH --model 5 --seeall
+python ssl_learning.py --epochs $bbepoch --model 5 --seeall
 
-# # ssl, model 1
-# python ssl_learning.py --epochs $SSLEPOCH --model 1
-# # ssl, model 2
-# python ssl_learning.py --epochs $SSLEPOCH --model 2 --pretrain checkpoints/ucf240_split0_2layer_2dGRU_static_B1_uoTrue_lr0.0001_wd1e-05_bs32/epoch10.pth.tar --start-epoch 10
-# # ssl, model 3
-# python ssl_learning.py --epochs $SSLEPOCH --model 3 --pretrain checkpoints/ucf240_split0_2layer_2dGRU_static_B2_uoTrue_lr0.0001_wd1e-05_bs32/epoch10.pth.tar --start-epoch 10
-# # ssl, model 4
-# python ssl_learning.py --epochs $SSLEPOCH --model 4 --useout
+
