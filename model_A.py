@@ -152,7 +152,8 @@ class CPC_2layer_2d_static_A2(nn.Module):
                 pred2.append(p_tmp2)
                 output1, hidden1 = self.auto_agressive1(p_tmp1.unsqueeze(1), hidden1)
                 output1 = output1[-1][:,-1,:]
-                out_middle.append(output1)
+                feature2_middle = self.backbone2(output1.view(B, self.code_size[0], 14, 14)) # used as 2nd layer gt
+                out_middle.append(feature2_middle)
                 output2, hidden2 = self.auto_agressive2(p_tmp2.unsqueeze(1), hidden2)
                 output2 = output2[-1][:,-1,:]
             pred1 = torch.stack(pred1, 1)  # B, pred_step, 512, 7, 7
@@ -308,7 +309,8 @@ class CPC_2layer_2d_static_A1(nn.Module):
                 pred2.append(p_tmp2)
                 output1, hidden1 = self.auto_agressive1(p_tmp1.unsqueeze(1), hidden1)
                 output1 = output1[-1][:,-1,:]
-                out_middle.append(output1)
+                feature2_middle = self.backbone2(output1.view(B, self.code_size[0], 14, 14)) # used as 2nd layer gt
+                out_middle.append(feature2_middle)
                 output2, hidden2 = self.auto_agressive2(p_tmp2.unsqueeze(1), hidden2)
                 output2 = output2[-1][:,-1,:]
             pred1 = torch.stack(pred1, 1)  # B, pred_step, 512, 14, 14
@@ -324,7 +326,7 @@ class CPC_2layer_2d_static_A1(nn.Module):
         similarity1 = torch.matmul(
             pred1.permute(0,1,3,4,2).contiguous().view(B*self.pred_step*14*14, self.code_size[0]), 
             feature_sub1.permute(0,1,3,4,2).contiguous().view(B*N_sub*14*14, self.code_size[0]).transpose(0, 1))
-
+        print(feature_sub2.size())
         similarity2 = torch.matmul(
             pred2.permute(0,1,3,4,2).contiguous().view(B*self.pred_step*7*7, self.code_size[1]), 
             feature_sub2.permute(0,1,3,4,2).contiguous().view(B*N_sub*7*7, self.code_size[1]).transpose(0, 1))
