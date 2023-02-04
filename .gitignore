@@ -13,5 +13,6 @@ UCF101/*
 HMDB51/*
 Kinetics400/*
 checkpoints/*
+old_checkpoints/*
 visualize/*
 xs
