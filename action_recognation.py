@@ -10,6 +10,7 @@ from data_HMDB51 import *
 from model import *
 from model_B import *
 from model_A import *
+from model_R import *
 
 from utils import *
 from augmentation import *
@@ -56,6 +57,8 @@ parser.add_argument('--no_val', action='store_true')
 parser.add_argument('--no_save', action='store_true')
 parser.add_argument('--freeze', action='store_true')
 
+parser.add_argument('--lada', default=0.1, type=float, help='h parameter for model R')
+
 
 def main():
     torch.manual_seed(233)
@@ -96,6 +99,11 @@ def main():
             model = action_CPC_2layer_2d_static_A2(class_num = 101)
         if args.dataset == 'hmdb240':
             model = action_CPC_2layer_2d_static_A2(class_num = 51)
+    elif args.model == 6:
+        if args.dataset == 'ucf240':
+            model = action_CPC_1layer_2d_static_R1(class_num = 101, lada=args.lada)
+        if args.dataset == 'hmdb240':
+            model = action_CPC_1layer_2d_static_R1(class_num = 51, lada=args.lada)
 
     model = nn.DataParallel(model)
     model = model.to(cuda)
@@ -321,6 +329,7 @@ def train(data_loader, model, optimizer, epoch, train):
         print('Epoch:', epoch, 'Validation loss:', mean_loss, 'Validation Acc:', mean_acc)
 
     return mean_acc
+
 
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@ from data_UCF101 import *
 from model import *
 from model_B import *
 from model_A import *
+from model_R import *
 
 from utils import *
 from augmentation import *
@@ -30,7 +31,8 @@ parser.add_argument('--model', default=1, type=int,
                         2 for (2layer, 2d ConvGRU, B1); \
                         3 for (2layer, 2d ConvGRU, B2); \
                         4 for (2layer, 2d ConvGRU, A1); \
-                        5 for (2layer, 2d ConvGRU, A2);')
+                        5 for (2layer, 2d ConvGRU, A2); \
+                        6 for (2layer, 2d ConvGRU, R1);')
 parser.add_argument('--dataset', default='ucf240', type=str,
                     help='dataset name')
 parser.add_argument('--which_split', default=0, type=int,
@@ -60,6 +62,8 @@ parser.add_argument('--no_save', action='store_true')
 parser.add_argument('--usehidden', action='store_true')
 parser.add_argument('--seeall', action='store_true')
 
+parser.add_argument('--lada', default=0.1, type=float, help='h parameter for model R')
+
 
 def main():
     torch.manual_seed(233)
@@ -84,6 +88,8 @@ def main():
         model = CPC_2layer_2d_static_A1(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout, seeall=args.seeall)
     elif args.model == 5:
         model = CPC_2layer_2d_static_A2(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout, seeall=args.seeall)
+    elif args.model == 6:
+        model = CPC_1layer_2d_static_R1(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout, seeall=args.seeall, lada=args.lada)
 
     model = nn.DataParallel(model)
     # model = nn.parallel.DistributedDataParallel(model)
@@ -151,9 +157,11 @@ def main():
         model_name = '2layer_2dGRU_static_A1'
     elif args.model == 5:
         model_name = '2layer_2dGRU_static_A2'
+    elif args.model == 6:
+        model_name = '1layer_2dGRU_static_R1_lada' + str(args.lada)
 
     ckpt_folder = os.path.join(
-        args.prefix, '%s_split%s_%s_uo%s_sa%s_lr%s_wd%s_bs%s' % (args.dataset, args.which_split, model_name, args.useout, args.seeall, args.lr, args.wd, args.batch_size)) 
+        args.prefix, '%s_split%s_%s_uo%s_sa%s_ds%s_ps%s_ns%s_lr%s_wd%s_bs%s' % (args.dataset, args.which_split, model_name, args.useout, args.seeall, args.downsample, args.pred_step, args.nsub, args.lr, args.wd, args.batch_size)) 
 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
