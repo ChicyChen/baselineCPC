@@ -111,7 +111,7 @@ class CPC_1layer_2d_static_R1(nn.Module):
         for i in range(self.pred_step - 1):
             # sequentially pred future
             if self.seeall:
-                zi = feature[:, i + self.pred_step, :]
+                zi = feature[:, i + N-self.pred_step, :]
                 si = self.lada*pi + (1-self.lada)*zi
             else:
                 si = pi
