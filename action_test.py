@@ -16,6 +16,8 @@ from model_R import *
 from utils import *
 from augmentation import *
 
+import logging
+
 import torch
 import torch.optim as optim
 from torch.utils import data
@@ -125,8 +127,15 @@ def main():
         test_loader = get_data_ucf(transform, 'test', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size, dim = 240)
     if args.dataset == 'hmdb240':
         test_loader = get_data_hmdb(transform, 'test', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size, dim = 240)
+    
+    test_file = os.path.join(args.backbone_folder, 'test_epoch%s_split%s.log' % (args.backbone_epoch, args.which_split))
+    logging.basicConfig(filename=test_file, level=logging.INFO)
+    logging.info('Started')
 
     test_acc = test(test_loader, model)
+
+    # with open(test_file, 'w') as f:
+    #     f.write('test_acc: '+str(test_acc))
 
 
 def test(data_loader, model):
@@ -146,6 +155,7 @@ def test(data_loader, model):
     mean_acc = np.mean(acc_list)
 
     print('Test--', 'Accuracy:', mean_acc)
+    logging.info('Test--Accuracy: %s' % mean_acc)
 
     return mean_acc
 

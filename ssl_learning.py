@@ -14,6 +14,8 @@ from model_R import *
 from utils import *
 from augmentation import *
 
+import logging
+
 import torch
 import torch.optim as optim
 from torch.utils import data
@@ -163,6 +165,9 @@ def main():
     ckpt_folder = os.path.join(
         args.prefix, '%s_split%s_%s_uo%s_sa%s_ds%s_ps%s_ns%s_lr%s_wd%s_bs%s' % (args.dataset, args.which_split, model_name, args.useout, args.seeall, args.downsample, args.pred_step, args.nsub, args.lr, args.wd, args.batch_size)) 
 
+    logging.basicConfig(filename=os.path.join(ckpt_folder, 'ssl_train.log'), level=logging.INFO)
+    logging.info('Started')
+
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 
@@ -199,6 +204,9 @@ def main():
     print('Training from ep %d to ep %d finished' %
           (args.start_epoch, args.epochs))
     print('Best epoch: %s' % best_epoch)
+    logging.info('Training from ep %d to ep %d finished' %
+          (args.start_epoch, args.epochs))
+    logging.info('Best epoch: %s' % best_epoch)
 
 
     # plot training process
@@ -264,8 +272,10 @@ def train(data_loader, model, optimizer, epoch, train = True):
     mean_loss = np.mean(loss_list)
     if train:
         print('Epoch:', epoch, '; Train loss:', mean_loss)
+        logging.info('Epoch: %s, Train loss: %s' % (epoch, mean_loss))
     else:
         print('Epoch:', epoch, '; Validation loss:', mean_loss)
+        logging.info('Epoch: %s, Validation loss: %s' % (epoch, mean_loss))
 
     return mean_loss
 

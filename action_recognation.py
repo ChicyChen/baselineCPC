@@ -15,6 +15,8 @@ from model_R import *
 from utils import *
 from augmentation import *
 
+import logging
+
 import torch
 import torch.optim as optim
 from torch.utils import data
@@ -244,6 +246,10 @@ def main():
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 
+    finetune_file = os.path.join(args.backbone_folder, 'tune_split%s.log' % args.which_split)
+    logging.basicConfig(filename=finetune_file, level=logging.INFO)
+    logging.info('Started')
+
     train_acc_list = []
     test_acc_list = []
     epoch_list = range(args.start_epoch, args.epochs)
@@ -276,6 +282,9 @@ def main():
     print('Training from ep %d to ep %d finished' %
           (args.start_epoch, args.epochs))
     print('Best epoch: %s' % best_epoch)
+    logging.info('Training from ep %d to ep %d finished' %
+          (args.start_epoch, args.epochs))
+    logging.info('Best epoch: %s' % best_epoch)
 
     # plot training process
     plt.plot(epoch_list, train_acc_list, label = 'train')
@@ -325,8 +334,10 @@ def train(data_loader, model, optimizer, epoch, train):
 
     if train:
         print('Epoch:', epoch, 'Train loss:', mean_loss, 'Train Acc:', mean_acc)
+        logging.info('Epoch: %s, Train loss: %s, Train Acc: %s' % (epoch, mean_loss, mean_acc))
     else:
         print('Epoch:', epoch, 'Validation loss:', mean_loss, 'Validation Acc:', mean_acc)
+        logging.info('Epoch: %s, Validation loss: %s, Validation Acc: %s' % (epoch, mean_loss, mean_acc))
 
     return mean_acc
 
