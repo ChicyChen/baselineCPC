@@ -416,13 +416,19 @@ class action_CPC_2layer_2d_static_A2(nn.Module):
             nn.Conv2d(self.code_size[1], self.code_size[1], kernel_size=1, padding=0)
         )
 
-        self.predhead1 = nn.Sequential(
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-            nn.Linear(self.code_size[0], self.class_num)
-        )
+        # self.predhead1 = nn.Sequential(
+        #     nn.AdaptiveAvgPool2d((1, 1)),
+        #     nn.Flatten(),
+        #     nn.Linear(self.code_size[0], self.class_num)
+        # )
 
-        self.predhead2 = nn.Sequential(
+        # self.predhead2 = nn.Sequential(
+        #     nn.AdaptiveAvgPool2d((1, 1)),
+        #     nn.Flatten(),
+        #     nn.Linear(self.code_size[1], self.class_num)
+        # )
+
+        self.predhead = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
             nn.Linear(self.code_size[1], self.class_num)
@@ -451,10 +457,12 @@ class action_CPC_2layer_2d_static_A2(nn.Module):
         context2, _ = self.auto_agressive2(feature2)
         context2 = context2[-1] # B, N, 512, 7, 7
 
-        output1 = self.predhead1(context1[:,-1,:])
-        output2 = self.predhead2(context2[:,-1,:])
-        # take the mean of two dimention's score, can try other types
-        output = output1 + output2
+        # output1 = self.predhead1(context1[:,-1,:])
+        # output2 = self.predhead2(context2[:,-1,:])
+        # # take the mean of two dimention's score, can try other types
+        # output = output1 + output2
+
+        output = self.predhead(context2[:,-1,:])
         
         return output
 
@@ -516,13 +524,19 @@ class action_CPC_2layer_2d_static_A1(nn.Module):
             nn.Conv2d(self.code_size[1], self.code_size[1], kernel_size=1, padding=0)
         )
 
-        self.predhead1 = nn.Sequential(
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-            nn.Linear(self.code_size[0], self.class_num)
-        )
+        # self.predhead1 = nn.Sequential(
+        #     nn.AdaptiveAvgPool2d((1, 1)),
+        #     nn.Flatten(),
+        #     nn.Linear(self.code_size[0], self.class_num)
+        # )
 
-        self.predhead2 = nn.Sequential(
+        # self.predhead2 = nn.Sequential(
+        #     nn.AdaptiveAvgPool2d((1, 1)),
+        #     nn.Flatten(),
+        #     nn.Linear(self.code_size[1], self.class_num)
+        # )
+
+        self.predhead = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
             nn.Linear(self.code_size[1], self.class_num)
@@ -551,10 +565,12 @@ class action_CPC_2layer_2d_static_A1(nn.Module):
         context2, _ = self.auto_agressive2(feature2)
         context2 = context2[-1]
 
-        output1 = self.predhead1(context1[:,-1,:])
-        output2 = self.predhead2(context2[:,-1,:])
-        # take the mean of two dimention's score, can try other types
-        output = output1 + output2
+        # output1 = self.predhead1(context1[:,-1,:])
+        # output2 = self.predhead2(context2[:,-1,:])
+        # # take the mean of two dimention's score, can try other types
+        # output = output1 + output2
+
+        output = self.predhead(context2[:,-1,:])
         
         return output
 

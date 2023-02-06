@@ -12,7 +12,7 @@ from auto_aggressive import *
 
 # baseline 2D
 class CPC_1layer_2d_static(nn.Module):
-    def __init__(self, code_size=512, top_size=512, pred_step=3, nsub=3, useout=False):
+    def __init__(self, code_size=512, top_size=512, pred_step=3, nsub=3, useout=False, seeall=False):
         super().__init__()
         torch.cuda.manual_seed(233)
 
@@ -21,6 +21,7 @@ class CPC_1layer_2d_static(nn.Module):
         self.pred_step = pred_step
         self.nsub = nsub
         self.useout = useout
+        self.seeall = seeall
         self.mask = None
         self.criterion = nn.CrossEntropyLoss()
 
@@ -63,33 +64,37 @@ class CPC_1layer_2d_static(nn.Module):
         feature = self.backbone(feature) # B*N, 512, 7, 7
         feature = feature.view(B, N, self.code_size, 7, 7)
 
-        # test use output for prediction instead of hidden states
-        if self.useout:
-            output, hidden = self.auto_agressive(feature[:, 0:N-self.pred_step, :].contiguous())
-            output = output[-1][:,-1,:]
+        if self.seeall:
+            output, hidden = self.auto_agressive(feature)
+            output = output[-1] # B, N, self.code_size[0], 7, 7
+            pred = self.latent_pred(output.view(B*N, self.top_size, 7, 7)).view(B, N, self.code_size, 7, 7)
+            pred = pred[:, N-self.pred_step:, :].contiguous()
         else:
-            _, hidden = self.auto_agressive(feature[:, 0:N-self.pred_step, :].contiguous())
-        
-        # hidden[-1].size(): B, 512, 7, 7
-
-        pred = []
-        for i in range(self.pred_step):
-            # sequentially pred future
+            # test use output for prediction instead of hidden states
             if self.useout:
-                p_tmp = self.latent_pred(output)
-            else:
-                p_tmp = self.latent_pred(hidden[-1])
-
-            # p_tmp.size(): B, 512, 7, 7
-            pred.append(p_tmp)
-
-            if self.useout:
-                output, hidden = self.auto_agressive(p_tmp.unsqueeze(1), hidden)
+                output, hidden = self.auto_agressive(feature[:, 0:N-self.pred_step, :].contiguous())
                 output = output[-1][:,-1,:]
             else:
-                _, hidden = self.auto_agressive(p_tmp.unsqueeze(1), hidden)
+                _, hidden = self.auto_agressive(feature[:, 0:N-self.pred_step, :].contiguous())
+            # hidden[-1].size(): B, 512, 7, 7
 
-        pred = torch.stack(pred, 1)  # B, pred_step, 512, 7, 7
+            pred = []
+            for i in range(self.pred_step):
+                # sequentially pred future
+                if self.useout:
+                    p_tmp = self.latent_pred(output)
+                else:
+                    p_tmp = self.latent_pred(hidden[-1])
+
+                # p_tmp.size(): B, 512, 7, 7
+                pred.append(p_tmp)
+
+                if self.useout:
+                    output, hidden = self.auto_agressive(p_tmp.unsqueeze(1), hidden)
+                    output = output[-1][:,-1,:]
+                else:
+                    _, hidden = self.auto_agressive(p_tmp.unsqueeze(1), hidden)
+            pred = torch.stack(pred, 1)  # B, pred_step, 512, 7, 7
 
         N_sub = self.nsub  # cobtrol number of negative pairs
         feature_sub = feature[:, N-N_sub:, :].contiguous()
@@ -123,6 +128,78 @@ class CPC_1layer_2d_static(nn.Module):
 
     def reset_mask(self):
         self.mask = None
+
+
+class action_CPC_1layer_2d_static(nn.Module):
+    def __init__(self, code_size=512, top_size=512, class_num=101):
+        super().__init__()
+        torch.cuda.manual_seed(233)
+
+        self.code_size = code_size
+        self.top_size = top_size
+        self.class_num = class_num
+
+        self.net_pre = nn.Sequential(
+            # (X, 3, 224, 224) -> (X, 64, 112, 112)
+            nn.Conv2d(3, 64, 7, stride=2, padding=3, bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            # (X, 64, 112, 112) -> (X, 64, 56, 56)
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        )
+        # (X, 64, 56, 56) -> (X, 512, 7, 7)
+        self.backbone = nn.Sequential(
+            ResNetLayer(BasicBlock, 2, inplanes=64, planes=64, stride=1),
+            ResNetLayer(BasicBlock, 2, inplanes=64, planes=128, stride=2),
+            ResNetLayer(BasicBlock, 2, inplanes=128, planes=256, stride=2),
+            ResNetLayer(BasicBlock, 2, inplanes=256, planes=512, stride=2)
+            # ResNetLayer(BasicBlock, 2, inplanes=256, planes=256, stride=2)   # In DPC, final layer does not have a larger channel number
+        )
+        # (X, 512, 7, 7) -> (X, 512, ?, ?)
+        self.auto_agressive = ConvGRU(in_channels=512, hidden_channels=512, kernel_size=(1,1), num_layers=1,
+            batch_first=True, bias=True, return_all_layers=False
+        )
+        # (X, 512, ?, ?) -> (X, 512, ?, ?)
+        self.latent_pred = nn.Sequential(
+            nn.Conv2d(512, 512, kernel_size=1, padding=0),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, kernel_size=1, padding=0)
+        )
+
+        self.predhead = nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
+            nn.Linear(512, self.class_num)
+        )
+
+        # Initialize weights
+        # self._initialize_weights(self.net_pre)
+        self._initialize_weights(self.auto_agressive)
+        self._initialize_weights(self.latent_pred)
+    
+    def forward(self, block):
+        (B, N, C, H, W) = block.shape
+        block = block.view(B*N, C, H, W)
+        feature = self.net_pre(block) # B*N, 64, 56, 56
+        feature = self.backbone(feature) # B*N, 512, 7, 7
+        # print(feature.size())
+        feature = feature.view(B, N, self.code_size, 7, 7)
+        context, _ = self.auto_agressive(feature.contiguous()) # B, N, 512, 7, 7
+        context = context[-1][:,-1,:] # B, 512, 7, 7
+        # print(context.size())
+        # sys.exit("test end.") 
+        output = self.predhead(context)
+        # print(output.size())
+        # sys.exit("test end.") 
+        
+        return output
+
+    def _initialize_weights(self, module):
+        for name, param in module.named_parameters():
+            if 'bias' in name:
+                nn.init.constant_(param, 0.0)
+            elif 'weight' in name:
+                nn.init.orthogonal_(param, 1)
 
 
 class CPC_1layer_1d_static(nn.Module):
@@ -241,77 +318,6 @@ class CPC_1layer_1d_static(nn.Module):
         self.mask = None
 
 
-
-class action_CPC_1layer_2d_static(nn.Module):
-    def __init__(self, code_size=512, top_size=512, class_num=101):
-        super().__init__()
-        torch.cuda.manual_seed(233)
-
-        self.code_size = code_size
-        self.top_size = top_size
-        self.class_num = class_num
-
-        self.net_pre = nn.Sequential(
-            # (X, 3, 224, 224) -> (X, 64, 112, 112)
-            nn.Conv2d(3, 64, 7, stride=2, padding=3, bias=False),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            # (X, 64, 112, 112) -> (X, 64, 56, 56)
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        )
-        # (X, 64, 56, 56) -> (X, 512, 7, 7)
-        self.backbone = nn.Sequential(
-            ResNetLayer(BasicBlock, 2, inplanes=64, planes=64, stride=1),
-            ResNetLayer(BasicBlock, 2, inplanes=64, planes=128, stride=2),
-            ResNetLayer(BasicBlock, 2, inplanes=128, planes=256, stride=2),
-            ResNetLayer(BasicBlock, 2, inplanes=256, planes=512, stride=2)
-            # ResNetLayer(BasicBlock, 2, inplanes=256, planes=256, stride=2)   # In DPC, final layer does not have a larger channel number
-        )
-        # (X, 512, 7, 7) -> (X, 512, ?, ?)
-        self.auto_agressive = ConvGRU(in_channels=512, hidden_channels=512, kernel_size=(1,1), num_layers=1,
-            batch_first=True, bias=True, return_all_layers=False
-        )
-        # (X, 512, ?, ?) -> (X, 512, ?, ?)
-        self.latent_pred = nn.Sequential(
-            nn.Conv2d(512, 512, kernel_size=1, padding=0),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, kernel_size=1, padding=0)
-        )
-
-        self.predhead = nn.Sequential(
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-            nn.Linear(512, self.class_num)
-        )
-
-        # Initialize weights
-        # self._initialize_weights(self.net_pre)
-        self._initialize_weights(self.auto_agressive)
-        self._initialize_weights(self.latent_pred)
-    
-    def forward(self, block):
-        (B, N, C, H, W) = block.shape
-        block = block.view(B*N, C, H, W)
-        feature = self.net_pre(block) # B*N, 64, 56, 56
-        feature = self.backbone(feature) # B*N, 512, 7, 7
-        # print(feature.size())
-        feature = feature.view(B, N, self.code_size, 7, 7)
-        context, _ = self.auto_agressive(feature.contiguous()) # B, N, 512, 7, 7
-        context = context[-1][:,-1,:] # B, 512, 7, 7
-        # print(context.size())
-        # sys.exit("test end.") 
-        output = self.predhead(context)
-        # print(output.size())
-        # sys.exit("test end.") 
-        
-        return output
-
-    def _initialize_weights(self, module):
-        for name, param in module.named_parameters():
-            if 'bias' in name:
-                nn.init.constant_(param, 0.0)
-            elif 'weight' in name:
-                nn.init.orthogonal_(param, 1)
 
 
 
