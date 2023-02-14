@@ -12,6 +12,7 @@ from model import *
 from model_B import *
 from model_A import *
 from model_R import *
+from model_M import *
 
 from utils import *
 from augmentation import *
@@ -95,6 +96,11 @@ def main():
             model = action_CPC_1layer_2d_static_R1(class_num = 101, lada=args.lada)
         if args.dataset == 'hmdb240':
             model = action_CPC_1layer_2d_static_R1(class_num = 51, lada=args.lada)
+    elif args.model == 7:
+        if args.dataset == 'ucf240':
+            model = action_CPC_1layer_2d_static_M0(class_num = 101)
+        if args.dataset == 'hmdb240':
+            model = action_CPC_1layer_2d_static_M0(class_num = 51)
 
     model = nn.DataParallel(model)
     model = model.to(cuda)

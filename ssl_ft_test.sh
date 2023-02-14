@@ -4,7 +4,7 @@ bbepoch=100
 # ssl need ~1000 epochs in SimCRL
 ftepoch=30
 # ft takes ~60 epochs in SimCRL
-batchsize=32
+batchsize=16
 downsample=3
 pred_step=5
 nsub=5

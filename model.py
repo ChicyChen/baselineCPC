@@ -393,7 +393,4 @@ class action_CPC_1layer_1d_static(nn.Module):
 
 
 
-
-if __name__ == '__main__':
-    main()
     

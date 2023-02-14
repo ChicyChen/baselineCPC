@@ -10,6 +10,7 @@ from model import *
 from model_B import *
 from model_A import *
 from model_R import *
+from model_M import *
 
 from utils import *
 from augmentation import *
@@ -34,7 +35,12 @@ parser.add_argument('--model', default=1, type=int,
                         3 for (2layer, 2d ConvGRU, B2); \
                         4 for (2layer, 2d ConvGRU, A1); \
                         5 for (2layer, 2d ConvGRU, A2); \
-                        6 for (2layer, 2d ConvGRU, R1);')
+                        6 for (1layer, 2d ConvGRU, R1); \
+                        7 for (1layer, 2d ConvGRU, M0);')
+
+parser.add_argument('--loss_mode', default=1, type=int,
+                    help='loss mode, depending on model type M0')
+
 parser.add_argument('--dataset', default='ucf240', type=str,
                     help='dataset name')
 parser.add_argument('--which_split', default=0, type=int,
@@ -92,6 +98,9 @@ def main():
         model = CPC_2layer_2d_static_A2(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout, seeall=args.seeall)
     elif args.model == 6:
         model = CPC_1layer_2d_static_R1(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout, seeall=args.seeall, lada=args.lada)
+    elif args.model == 7:
+        model = CPC_1layer_2d_static_M0(pred_step=args.pred_step, nsub=args.nsub, useout=args.useout, seeall=args.seeall, loss_mode=args.loss_mode)
+
 
     model = nn.DataParallel(model)
     # model = nn.parallel.DistributedDataParallel(model)
@@ -161,15 +170,17 @@ def main():
         model_name = '2layer_2dGRU_static_A2'
     elif args.model == 6:
         model_name = '1layer_2dGRU_static_R1_lada' + str(args.lada)
+    elif args.model == 7:
+        model_name = '1layer_2dGRU_static_M0_loss' + str(args.loss_mode)
 
     ckpt_folder = os.path.join(
         args.prefix, '%s_split%s_%s_uo%s_sa%s_ds%s_ps%s_ns%s_lr%s_wd%s_bs%s' % (args.dataset, args.which_split, model_name, args.useout, args.seeall, args.downsample, args.pred_step, args.nsub, args.lr, args.wd, args.batch_size)) 
 
-    logging.basicConfig(filename=os.path.join(ckpt_folder, 'ssl_train.log'), level=logging.INFO)
-    logging.info('Started')
-
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
+
+    logging.basicConfig(filename=os.path.join(ckpt_folder, 'ssl_train.log'), level=logging.INFO)
+    logging.info('Started')
 
     train_loss_list = []
     test_loss_list = []

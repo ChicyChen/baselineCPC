@@ -9,7 +9,7 @@ downsample=3
 pred_step=5
 nsub=5
 split=1
-test_split=0
+test_split=1
 
 # test
 # 1layer_2dGRU_static, sa

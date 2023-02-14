@@ -4,6 +4,7 @@ import glob
 import pandas as pd
 from tqdm import tqdm 
 from joblib import delayed, Parallel
+import random
 
 def write_list(data_list, path, ):
     with open(path, 'w') as f:
@@ -27,8 +28,8 @@ def main_UCF101_full(f_root, splits_root, csv_root='data/ucf101/'):
 
     if not os.path.exists(csv_root): os.makedirs(csv_root)
 
-    train_set = []
-    test_set = []
+    all_set = []
+    video_name_set = []
 
     for which_split in [1,2,3]:
         
@@ -36,22 +37,39 @@ def main_UCF101_full(f_root, splits_root, csv_root='data/ucf101/'):
         with open(train_split_file, 'r') as f:
             for line in f:
                 tmp_path = line.split(' ')[0][0:-4]
-                action_name = tmp_path.split('/')[0]
-                action_id = action_dict[action_name]
-                vpath = os.path.join(f_root, tmp_path) + '/'
-                train_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
+                if tmp_path in video_name_set:
+                    pass
+                else:
+                    video_name_set.append(tmp_path)
+                    action_name = tmp_path.split('/')[0]
+                    action_id = action_dict[action_name]
+                    vpath = os.path.join(f_root, tmp_path) + '/'
+                    all_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
 
         test_split_file = os.path.join(splits_root, 'testlist%02d.txt' % which_split)
         with open(test_split_file, 'r') as f:
             for line in f:
                 tmp_path = line.split(' ')[0][0:-4]
-                action_name = tmp_path.split('/')[0]
-                action_id = action_dict[action_name]
-                vpath = os.path.join(f_root, tmp_path) + '/'
-                test_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
+                if tmp_path in video_name_set:
+                    pass
+                else:
+                    video_name_set.append(tmp_path)
+                    action_name = tmp_path.split('/')[0]
+                    action_id = action_dict[action_name]
+                    vpath = os.path.join(f_root, tmp_path) + '/'
+                    all_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
+
+    for i in range(5):
+        random.shuffle(all_set)
+    
+    total_num = len(all_set)
+    train_num = int(total_num*0.7)
+    train_set = all_set[:train_num]
+    test_set = all_set[train_num:]
 
     write_list(train_set, os.path.join(csv_root, 'train.csv'))
     write_list(test_set, os.path.join(csv_root, 'test.csv'))
+    write_list(all_set, os.path.join(csv_root, 'all.csv'))
         
 
 def main_UCF101(f_root, splits_root, csv_root='data/ucf101/'):
@@ -100,6 +118,8 @@ def main_HMDB51_full(f_root, splits_root, csv_root='data/hmdb51/'):
 
     train_set = []
     test_set = []
+    all_set = []
+    video_name_set = []
 
     for which_split in [1,2,3]:
         split_files = sorted(glob.glob(os.path.join(splits_root, '*_test_split%d.txt' % which_split)))
@@ -115,15 +135,25 @@ def main_HMDB51_full(f_root, splits_root, csv_root='data/hmdb51/'):
             with open(split_file, 'r') as f:
                 for line in f:
                     video_name = line.split(' ')[0]
-                    _type = line.split(' ')[1]
-                    vpath = os.path.join(f_root, action_name, video_name[0:-4]) + '/'
-                    if _type == '1':
-                        train_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
-                    elif _type == '2':
-                        test_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
+
+                    if video_name in video_name_set:
+                        pass
+                    else:
+                        video_name_set.append(video_name)
+                        vpath = os.path.join(f_root, action_name, video_name[0:-4]) + '/'
+                        all_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
+    
+    for i in range(5):
+        random.shuffle(all_set)
+    
+    total_num = len(all_set)
+    train_num = int(total_num*0.7)
+    train_set = all_set[:train_num]
+    test_set = all_set[train_num:]
 
     write_list(train_set, os.path.join(csv_root, 'train.csv'))
     write_list(test_set, os.path.join(csv_root, 'test.csv'))
+    write_list(all_set, os.path.join(csv_root, 'all.csv'))
 
 
 def main_HMDB51(f_root, splits_root, csv_root='data/hmdb51/'):
@@ -210,19 +240,22 @@ if __name__ == '__main__':
     #                  k400_path='Kinetics',
     #                  f_root='Kinetics400/frame')
 
-    # main_UCF101_full(f_root='UCF101/frame', 
-    #             splits_root='UCF101/splits_classification')
+    main_UCF101_full(f_root='UCF101/frame', 
+                splits_root='UCF101/splits_classification')
+
+    main_HMDB51_full(f_root='HMDB51/frame',
+                splits_root='HMDB51/split/testTrainMulti_7030_splits')
 
     # main_HMDB51_full(f_root='HMDB51/frame',
     #             splits_root='HMDB51/split/testTrainMulti_7030_splits')
 
-    main_UCF101(f_root='UCF101/frame_240', 
-                splits_root='UCF101/splits_classification',
-                csv_root='data/ucf101_240/')
+    # main_UCF101(f_root='UCF101/frame_240', 
+    #             splits_root='UCF101/splits_classification',
+    #             csv_root='data/ucf101_240/')
 
-    main_HMDB51(f_root='HMDB51/frame_240',
-                splits_root='HMDB51/split/testTrainMulti_7030_splits',
-                csv_root='data/hmdb51_240/')
+    # main_HMDB51(f_root='HMDB51/frame_240',
+    #             splits_root='HMDB51/split/testTrainMulti_7030_splits',
+    #             csv_root='data/hmdb51_240/')
 
     main_UCF101_full(f_root='UCF101/frame_240', 
                 splits_root='UCF101/splits_classification',

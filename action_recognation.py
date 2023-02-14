@@ -11,6 +11,7 @@ from model import *
 from model_B import *
 from model_A import *
 from model_R import *
+from model_M import *
 
 from utils import *
 from augmentation import *
@@ -106,6 +107,11 @@ def main():
             model = action_CPC_1layer_2d_static_R1(class_num = 101, lada=args.lada)
         if args.dataset == 'hmdb240':
             model = action_CPC_1layer_2d_static_R1(class_num = 51, lada=args.lada)
+    elif args.model == 7:
+        if args.dataset == 'ucf240':
+            model = action_CPC_1layer_2d_static_M0(class_num = 101)
+        if args.dataset == 'hmdb240':
+            model = action_CPC_1layer_2d_static_M0(class_num = 51)
 
     model = nn.DataParallel(model)
     model = model.to(cuda)
@@ -238,15 +244,15 @@ def main():
         # create folders
         if not args.freeze:
             ckpt_folder = os.path.join(
-                args.backbone_folder, 'finetune_hmdb240_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch)) 
+                args.backbone_folder, 'finetune_hmdb240_lr%s_wd%s_ep%s_split%s' % (args.lr, args.wd, args.backbone_epoch, args.which_split)) 
         else:
             ckpt_folder = os.path.join(
-                args.backbone_folder, 'freeze_hmdb240_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch))
+                args.backbone_folder, 'freeze_hmdb240_lr%s_wd%s_ep%s_split%s' % (args.lr, args.wd, args.backbone_epoch, args.which_split))
 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 
-    finetune_file = os.path.join(args.backbone_folder, 'tune_split%s.log' % args.which_split)
+    finetune_file = os.path.join(ckpt_folder, 'tune_split%s.log' % args.which_split)
     logging.basicConfig(filename=finetune_file, level=logging.INFO)
     logging.info('Started')
 
