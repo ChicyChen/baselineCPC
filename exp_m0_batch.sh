@@ -7,7 +7,7 @@ ftepoch=60
 # start_epoch=30
 # ft takes ~60 epochs in SimCRL
 
-batchsize=16
+batchsize=64
 downsample=3
 
 split=1
@@ -19,7 +19,7 @@ nsub=5
 datasetssl='ucf'
 datasetft='hmdb'
 
-gpu='0,1'
+gpu='2,3'
 
 
 for loss_mode in 0 1 2 3 4
