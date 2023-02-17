@@ -62,7 +62,7 @@ parser.add_argument('--epochs', default=10, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--gpu', default='0,1,2,3', type=str)
+parser.add_argument('--gpu', default='0,1', type=str)
 parser.add_argument('--prefix', default='checkpoints', type=str,
                     help='prefix of checkpoint filename')
 parser.add_argument('--no_val', action='store_true')

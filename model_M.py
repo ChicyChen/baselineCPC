@@ -24,14 +24,14 @@ def main():
 
     transform = transforms.Compose([
         RandomHorizontalFlip(consistent=True),
-        RandomCrop(size=224, consistent=True),
-        Scale(size=(224,224)),
+        RandomCrop(size=128, consistent=True),
+        Scale(size=(128,128)),
         RandomGray(consistent=False, p=0.5),
         ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.25, p=1.0),
         ToTensor(),
         Normalize()
     ])
-    train_loader = get_data_ucf(transform, 'train', batch_size=8, dim=240)
+    train_loader = get_data_ucf(transform, 'train', batch_size=8)
 
     for _, input_seq in enumerate(train_loader):
         input_seq = input_seq.to(cuda)
@@ -42,7 +42,7 @@ def main():
 
 # baseline 2D
 class CPC_1layer_2d_static_M0(nn.Module):
-    def __init__(self, code_size=512, top_size=512, pred_step=3, nsub=3, useout=True, seeall=False, loss_mode=0):
+    def __init__(self, inputdim=128, code_size=512, top_size=512, pred_step=3, nsub=3, useout=True, seeall=False, loss_mode=0):
         super().__init__()
         torch.cuda.manual_seed(233)
 
@@ -56,16 +56,17 @@ class CPC_1layer_2d_static_M0(nn.Module):
         self.criterion = nn.CrossEntropyLoss()
         self.mse = nn.MSELoss()
         self.loss_mode = loss_mode
+        self.final_dim = int(inputdim / 32)
 
         self.net_pre = nn.Sequential(
-            # (X, 3, 224, 224) -> (X, 64, 112, 112)
+            # (X, 3, 128, 128) -> (X, 64, 64, 64)
             nn.Conv2d(3, 64, 7, stride=2, padding=3, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            # (X, 64, 112, 112) -> (X, 64, 56, 56)
+            # (X, 64, 64, 64) -> (X, 64, 32, 32)
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         )
-        # (X, 64, 56, 56) -> (X, 512, 7, 7)
+        # (X, 64, 32, 32) -> (X, 512, 4, 4)
         self.backbone = nn.Sequential(
             ResNetLayer(BasicBlock, 2, inplanes=64, planes=64, stride=1),
             ResNetLayer(BasicBlock, 2, inplanes=64, planes=128, stride=2),
@@ -73,13 +74,14 @@ class CPC_1layer_2d_static_M0(nn.Module):
             ResNetLayer(BasicBlock, 2, inplanes=256, planes=512, stride=2)
             # ResNetLayer(BasicBlock, 2, inplanes=256, planes=256, stride=2)   # In DPC, final layer does not have a larger channel number
         )
-        # (X, 512, 7, 7) -> (X, 512, 7, 7)
+        # (X, 512, 4, 4) -> (X, 512, 4, 4)
         self.auto_agressive = ConvGRU(in_channels=512, hidden_channels=512, kernel_size=(1,1), num_layers=1,
             batch_first=True, bias=True, return_all_layers=False
         )
-        # (X, 512, 7, 7) -> (X, 512, 7, 7)
+        # (X, 512, 4, 4) -> (X, 512, 4, 4)
         self.latent_pred = nn.Sequential(
             nn.Conv2d(512, 512, kernel_size=1, padding=0),
+            nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
             nn.Conv2d(512, 512, kernel_size=1, padding=0)
         )
@@ -87,62 +89,62 @@ class CPC_1layer_2d_static_M0(nn.Module):
         # Initialize weights
         # self._initialize_weights(self.net_pre)
         self._initialize_weights(self.auto_agressive)
-        self._initialize_weights(self.latent_pred)
+        # self._initialize_weights(self.latent_pred)
     
     def forward(self, block):
         (B, N, C, H, W) = block.shape
         block = block.view(B*N, C, H, W)
         feature = self.net_pre(block) # B*N, 64, 56, 56
-        feature = self.backbone(feature) # B*N, 512, 7, 7
-        feature = feature.view(B, N, self.code_size, 7, 7)
+        feature = self.backbone(feature) # B*N, 512, self.final_dim, self.final_dim
+        feature = feature.view(B, N, self.code_size, self.final_dim, self.final_dim)
         c_true, hidden = self.auto_agressive(feature)
-        c_true = c_true[-1] # B, N, self.top_size, 7, 7
+        c_true = c_true[-1] # B, N, self.top_size, self.final_dim, self.final_dim
 
         if self.seeall:
-            pred = self.latent_pred(c_true.view(B*N, self.top_size, 7, 7)).view(B, N, self.code_size, 7, 7)
+            pred = self.latent_pred(c_true.view(B*N, self.top_size, self.final_dim, self.final_dim)).view(B, N, self.code_size, self.final_dim, self.final_dim)
             pred = pred[:, N-self.pred_step:, :].contiguous()
             c_pred, _ = self.auto_agressive(pred)
             c_pred = c_pred[-1]
         else:
             output, hidden = self.auto_agressive(feature[:, 0:N-self.pred_step, :].contiguous())
             output = output[-1][:,-1,:]
-            # hidden[-1].size(): B, 512, 7, 7
+            # hidden[-1].size(): B, 512, self.final_dim, self.final_dim
 
             pred = []
             c_pred = []
             for i in range(self.pred_step):
                 # sequentially pred future
                 p_tmp = self.latent_pred(output)
-                # p_tmp.size(): B, 512, 7, 7
+                # p_tmp.size(): B, 512, self.final_dim, self.final_dim
                 pred.append(p_tmp)
                 output, hidden = self.auto_agressive(p_tmp.unsqueeze(1), hidden)
                 output = output[-1][:,-1,:]
                 c_pred.append(output)
-            pred = torch.stack(pred, 1)  # B, pred_step, 512, 7, 7
+            pred = torch.stack(pred, 1)  # B, pred_step, 512, self.final_dim, self.final_dim
             c_pred = torch.stack(c_pred, 1)
 
         N_sub = self.nsub  # cobtrol number of negative pairs
         feature_sub = feature[:, N-N_sub:, :].contiguous() # real zt for contrast
         c_sub = c_true[:, N-N_sub:, :].contiguous() # real ct for contrast
 
-        feature_real = feature[:, N-self.pred_step:, :].contiguous() # real zt for mse: B, pred_step, 512, 7, 7
-        c_real = c_true[:, N-self.pred_step:, :].contiguous() # real ct for mse: B, pred_step, 512, 7, 7
+        feature_real = feature[:, N-self.pred_step:, :].contiguous() # real zt for mse: B, pred_step, 512, self.final_dim, self.final_dim
+        c_real = c_true[:, N-self.pred_step:, :].contiguous() # real ct for mse: B, pred_step, 512, self.final_dim, self.final_dim
 
         similarity = torch.matmul(
-            pred.permute(0,1,3,4,2).contiguous().view(B*self.pred_step*7*7, self.code_size), 
-            feature_sub.permute(0,1,3,4,2).contiguous().view(B*N_sub*7*7, self.code_size).transpose(0, 1))
+            pred.permute(0,1,3,4,2).contiguous().view(B*self.pred_step*self.final_dim*self.final_dim, self.code_size), 
+            feature_sub.permute(0,1,3,4,2).contiguous().view(B*N_sub*self.final_dim*self.final_dim, self.code_size).transpose(0, 1))
         c_similarity = torch.matmul(
-            c_pred.permute(0,1,3,4,2).contiguous().view(B*self.pred_step*7*7, self.code_size), 
-            c_sub.permute(0,1,3,4,2).contiguous().view(B*N_sub*7*7, self.code_size).transpose(0, 1))
+            c_pred.permute(0,1,3,4,2).contiguous().view(B*self.pred_step*self.final_dim*self.final_dim, self.code_size), 
+            c_sub.permute(0,1,3,4,2).contiguous().view(B*N_sub*self.final_dim*self.final_dim, self.code_size).transpose(0, 1))
         
         if self.mask is None:
-            mask = torch.zeros((B, self.pred_step, 7*7, B, N_sub, 7*7), dtype=torch.int8, requires_grad=False).detach().cuda()
+            mask = torch.zeros((B, self.pred_step, self.final_dim*self.final_dim, B, N_sub, self.final_dim*self.final_dim), dtype=torch.int8, requires_grad=False).detach().cuda()
             # print(mask.size())
             mask = mask.detach().cuda()
             for j in range(B):
                 for i in range(self.pred_step):
-                    mask[j, i, torch.arange(7*7), j, N_sub-self.pred_step+i, torch.arange(7*7)] = 1  # pos
-            mask = mask.view(B*self.pred_step*7*7, B*N_sub*7*7)
+                    mask[j, i, torch.arange(self.final_dim*self.final_dim), j, N_sub-self.pred_step+i, torch.arange(self.final_dim*self.final_dim)] = 1  # pos
+            mask = mask.view(B*self.pred_step*self.final_dim*self.final_dim, B*N_sub*self.final_dim*self.final_dim)
             self.mask = mask.to(int).argmax(dim=1)
             # print(torch.sum(mask))
             # sys.exit("test end.") 
@@ -178,23 +180,24 @@ class CPC_1layer_2d_static_M0(nn.Module):
 
 
 class action_CPC_1layer_2d_static_M0(nn.Module):
-    def __init__(self, code_size=512, top_size=512, class_num=101):
+    def __init__(self, inputdim=128, code_size=512, top_size=512, class_num=101):
         super().__init__()
         torch.cuda.manual_seed(233)
 
         self.code_size = code_size
         self.top_size = top_size
         self.class_num = class_num
+        self.final_dim = int(inputdim / 32)
 
         self.net_pre = nn.Sequential(
-            # (X, 3, 224, 224) -> (X, 64, 112, 112)
+            # (X, 3, 128, 128) -> (X, 64, 64, 64)
             nn.Conv2d(3, 64, 7, stride=2, padding=3, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            # (X, 64, 112, 112) -> (X, 64, 56, 56)
+            # (X, 64, 64, 64) -> (X, 64, 32, 32)
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         )
-        # (X, 64, 56, 56) -> (X, 512, 7, 7)
+        # (X, 64, 32, 32) -> (X, 512, self.final_dim, self.final_dim)
         self.backbone = nn.Sequential(
             ResNetLayer(BasicBlock, 2, inplanes=64, planes=64, stride=1),
             ResNetLayer(BasicBlock, 2, inplanes=64, planes=128, stride=2),
@@ -202,7 +205,7 @@ class action_CPC_1layer_2d_static_M0(nn.Module):
             ResNetLayer(BasicBlock, 2, inplanes=256, planes=512, stride=2)
             # ResNetLayer(BasicBlock, 2, inplanes=256, planes=256, stride=2)   # In DPC, final layer does not have a larger channel number
         )
-        # (X, 512, 7, 7) -> (X, 512, ?, ?)
+        # (X, 512, self.final_dim, self.final_dim) -> (X, 512, ?, ?)
         self.auto_agressive = ConvGRU(in_channels=512, hidden_channels=512, kernel_size=(1,1), num_layers=1,
             batch_first=True, bias=True, return_all_layers=False
         )
@@ -228,11 +231,11 @@ class action_CPC_1layer_2d_static_M0(nn.Module):
         (B, N, C, H, W) = block.shape
         block = block.view(B*N, C, H, W)
         feature = self.net_pre(block) # B*N, 64, 56, 56
-        feature = self.backbone(feature) # B*N, 512, 7, 7
+        feature = self.backbone(feature) # B*N, 512, self.final_dim, self.final_dim
         # print(feature.size())
-        feature = feature.view(B, N, self.code_size, 7, 7)
-        context, _ = self.auto_agressive(feature.contiguous()) # B, N, 512, 7, 7
-        context = context[-1][:,-1,:] # B, 512, 7, 7
+        feature = feature.view(B, N, self.code_size, self.final_dim, self.final_dim)
+        context, _ = self.auto_agressive(feature.contiguous()) # B, N, 512, self.final_dim, self.final_dim
+        context = context[-1][:,-1,:] # B, 512, self.final_dim, self.final_dim
         # print(context.size())
         # sys.exit("test end.") 
         output = self.predhead(context)

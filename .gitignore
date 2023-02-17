@@ -12,6 +12,7 @@ MovingMNIST/*
 UCF101/*
 HMDB51/*
 Kinetics400/*
+ckpt_normalized/*
 checkpoints/*
 old_checkpoints/*
 visualize/*

@@ -55,7 +55,7 @@ parser.add_argument('--epochs', default=10, type=int,
                     help='number of total epochs to finetune')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--gpu', default='0,1,2,3', type=str)
+parser.add_argument('--gpu', default='0,1', type=str)
 parser.add_argument('--no_val', action='store_true')
 parser.add_argument('--no_save', action='store_true')
 parser.add_argument('--freeze', action='store_true')
@@ -108,9 +108,9 @@ def main():
         if args.dataset == 'hmdb240':
             model = action_CPC_1layer_2d_static_R1(class_num = 51, lada=args.lada)
     elif args.model == 7:
-        if args.dataset == 'ucf240':
+        if args.dataset == 'ucf':
             model = action_CPC_1layer_2d_static_M0(class_num = 101)
-        if args.dataset == 'hmdb240':
+        if args.dataset == 'hmdb':
             model = action_CPC_1layer_2d_static_M0(class_num = 51)
 
     model = nn.DataParallel(model)

@@ -47,7 +47,7 @@ parser.add_argument('--backbone_epoch', default=10, type=int,
                     help='epoch of pretrained backbone or model')
 
 
-parser.add_argument('--gpu', default='0,1,2,3', type=str)
+parser.add_argument('--gpu', default='0,1', type=str)
 
 parser.add_argument('--lada', default=0.1, type=float, help='h parameter for model R')
 
@@ -97,9 +97,9 @@ def main():
         if args.dataset == 'hmdb240':
             model = action_CPC_1layer_2d_static_R1(class_num = 51, lada=args.lada)
     elif args.model == 7:
-        if args.dataset == 'ucf240':
+        if args.dataset == 'ucf':
             model = action_CPC_1layer_2d_static_M0(class_num = 101)
-        if args.dataset == 'hmdb240':
+        if args.dataset == 'hmdb':
             model = action_CPC_1layer_2d_static_M0(class_num = 51)
 
     model = nn.DataParallel(model)
@@ -115,25 +115,30 @@ def main():
         print("=> no backbone found at '{}'".format(backbone_path))
         raise ValueError('no trained model found.')
 
-    transform = transforms.Compose([
-        RandomSizedCrop(consistent=True, size=224, p=0.0),
-        Scale(size=(224,224)),
-        ToTensor(),
-        Normalize()
-    ])
-    # transform = transforms.Compose([
-    #     RandomSizedCrop(consistent=True, size=224, p=1.0),
-    #     Scale(size=(224,224)),
-    #     RandomHorizontalFlip(consistent=True),
-    #     ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.25, p=0.3, consistent=True),
-    #     ToTensor(),
-    #     Normalize()
-    # ])
+    if args.dataset == 'hmdb240' or args.dataset == 'ucf240':
+        transform = transforms.Compose([
+            RandomSizedCrop(consistent=True, size=224, p=0.0),
+            Scale(size=(224,224)),
+            ToTensor(),
+            Normalize()
+        ])
+    else:
+        transform = transforms.Compose([
+            RandomSizedCrop(consistent=True, size=128, p=0.0),
+            Scale(size=(128,128)),
+            ToTensor(),
+            Normalize()
+        ])
+
     if args.dataset == 'ucf240':
         test_loader = get_data_ucf(transform, 'test', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size, dim = 240)
     if args.dataset == 'hmdb240':
         test_loader = get_data_hmdb(transform, 'test', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size, dim = 240)
-    
+    if args.dataset == 'ucf':
+        test_loader = get_data_ucf(transform, 'val', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size)
+    if args.dataset == 'hmdb':
+        test_loader = get_data_hmdb(transform, 'val', args.num_seq, args.downsample, args.which_split, return_label=True, batch_size=args.batch_size)
+
     test_file = os.path.join(args.backbone_folder, 'test_epoch%s_split%s.log' % (args.backbone_epoch, args.which_split))
     logging.basicConfig(filename=test_file, level=logging.INFO)
     logging.info('Started')
