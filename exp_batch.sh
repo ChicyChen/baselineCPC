@@ -10,7 +10,7 @@ test_split=1
 pred_step=5
 nsub=5
 
-for batchsize in 32 64 128
+for batchsize in 64 128
 do 
     nsub=$pred_step
     # ssl
