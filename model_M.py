@@ -40,6 +40,13 @@ def main():
         sys.exit("test end.") 
 
 
+def bypl_loss_fn(x, y):
+   # L2 normalization
+   x = F.normalize(x, dim=-1, p=2)
+   y = F.normalize(y, dim=-1, p=2)
+   return 2 - 2 * (x * y).sum(dim=-1)
+
+
 # baseline 2D
 class CPC_1layer_2d_static_M0(nn.Module):
     def __init__(self, inputdim=128, code_size=512, top_size=512, pred_step=3, nsub=3, useout=True, seeall=False, loss_mode=0):
@@ -80,6 +87,8 @@ class CPC_1layer_2d_static_M0(nn.Module):
         )
         # (X, 512, 4, 4) -> (X, 512, 4, 4)
         self.latent_pred = nn.Sequential(
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
             nn.Conv2d(512, 512, kernel_size=1, padding=0),
             nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
@@ -88,7 +97,7 @@ class CPC_1layer_2d_static_M0(nn.Module):
 
         # Initialize weights
         # self._initialize_weights(self.net_pre)
-        self._initialize_weights(self.auto_agressive)
+        # self._initialize_weights(self.auto_agressive)
         # self._initialize_weights(self.latent_pred)
     
     def forward(self, block):

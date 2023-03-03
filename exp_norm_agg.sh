@@ -1,13 +1,13 @@
 #!/bin/bash
 
-checkpoints='ckpt_normalized'
+checkpoints='ckpt_normalized_agg'
 bbepoch=100
 # ssl need ~1000 epochs in SimCRL
-ftepoch=60
+ftepoch=30
 # start_epoch=30
 # ft takes ~60 epochs in SimCRL
 
-batchsize=64
+# batchsize=16
 downsample=3
 
 split=1
@@ -19,10 +19,12 @@ nsub=5
 datasetssl='ucf'
 datasetft='hmdb'
 
-gpu='2,3'
+gpu='0,1'
+
+loss_mode=0
 
 
-for loss_mode in 3 4
+for batchsize in 16 64
 do 
     # ssl
     # 1layer_2dGRU_static_M0
@@ -35,17 +37,6 @@ do
     python action_recognation.py --backbone_folder $bbfoler --backbone_epoch $bbepoch --epochs $ftepoch --which_split $ft_split --model 7 --dataset $datasetft --gpu $gpu
     bbfoler="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
     python action_recognation.py --backbone_folder $bbfoler --backbone_epoch $bbepoch --epochs $ftepoch --which_split $ft_split --model 7 --dataset $datasetft --gpu $gpu
-
-    # # ft with pretrain
-    # # 1layer_2dGRU_static_M0
-    # bbfoler="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saFalse_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
-    # prefolder="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saFalse_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize""/finetune_$datasetft""_lr0.001_wd0.0001_ep$bbepoch""_split$ft_split"
-    # pretrain="$prefolder""/epoch$start_epoch"".pth.tar"
-    # python action_recognation.py --backbone_folder $bbfoler --backbone_epoch $bbepoch --epochs $ftepoch --which_split $ft_split --model 7 --pretrain $pretrain --start-epoch $start_epoch
-    # bbfoler="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
-    # prefolder="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize""/finetune_$datasetft""_lr0.001_wd0.0001_ep$bbepoch""_split$ft_split"
-    # pretrain="$prefolder""/epoch$start_epoch"".pth.tar"
-    # python action_recognation.py --backbone_folder $bbfoler --backbone_epoch $bbepoch --epochs $ftepoch --which_split $ft_split --model 7 --pretrain $pretrain --start-epoch $start_epoch
     
 
     # test

@@ -22,7 +22,7 @@ datasetft='hmdb'
 gpu='0,1'
 
 
-for loss_mode in 0 1 2 3 4
+for loss_mode in 3 4
 do 
     # ssl
     # 1layer_2dGRU_static_M0
@@ -31,28 +31,28 @@ do
 
     # ft
     # 1layer_2dGRU_static_M0
-    bbfoler="$checkpoints""/ucf240_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saFalse_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
+    bbfoler="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saFalse_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
     python action_recognation.py --backbone_folder $bbfoler --backbone_epoch $bbepoch --epochs $ftepoch --which_split $ft_split --model 7 --dataset $datasetft --gpu $gpu
-    bbfoler="$checkpoints""/ucf240_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
+    bbfoler="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
     python action_recognation.py --backbone_folder $bbfoler --backbone_epoch $bbepoch --epochs $ftepoch --which_split $ft_split --model 7 --dataset $datasetft --gpu $gpu
 
     # # ft with pretrain
     # # 1layer_2dGRU_static_M0
-    # bbfoler="$checkpoints""/ucf240_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saFalse_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
-    # prefolder="$checkpoints""/ucf240_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saFalse_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize""/finetune_hmdb240_lr0.001_wd0.0001_ep$bbepoch""_split$ft_split"
+    # bbfoler="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saFalse_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
+    # prefolder="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saFalse_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize""/finetune_$datasetft""_lr0.001_wd0.0001_ep$bbepoch""_split$ft_split"
     # pretrain="$prefolder""/epoch$start_epoch"".pth.tar"
     # python action_recognation.py --backbone_folder $bbfoler --backbone_epoch $bbepoch --epochs $ftepoch --which_split $ft_split --model 7 --pretrain $pretrain --start-epoch $start_epoch
-    # bbfoler="$checkpoints""/ucf240_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
-    # prefolder="$checkpoints""/ucf240_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize""/finetune_hmdb240_lr0.001_wd0.0001_ep$bbepoch""_split$ft_split"
+    # bbfoler="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize"
+    # prefolder="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize""/finetune_$datasetft""_lr0.001_wd0.0001_ep$bbepoch""_split$ft_split"
     # pretrain="$prefolder""/epoch$start_epoch"".pth.tar"
     # python action_recognation.py --backbone_folder $bbfoler --backbone_epoch $bbepoch --epochs $ftepoch --which_split $ft_split --model 7 --pretrain $pretrain --start-epoch $start_epoch
     
 
     # test
     # 1layer_2dGRU_static_M0
-    bbfoler="$checkpoints""/ucf240_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saFalse_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize""/finetune_hmdb240_lr0.001_wd0.0001_ep$bbepoch""_split$ft_split"
+    bbfoler="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saFalse_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize""/finetune_$datasetft""_lr0.001_wd0.0001_ep$bbepoch""_split$ft_split"
     python action_test.py --backbone_folder $bbfoler --backbone_epoch $ftepoch --which_split $ft_split --model 7 --dataset $datasetft --gpu $gpu
-    bbfoler="$checkpoints""/ucf240_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize""/finetune_hmdb240_lr0.001_wd0.0001_ep$bbepoch""_split$ft_split"
+    bbfoler="$checkpoints""/$datasetssl""_split$split""_1layer_2dGRU_static_M0_loss$loss_mode""_uoTrue_saTrue_ds$downsample""_ps$pred_step""_ns$nsub""_lr0.0001_wd1e-05_bs$batchsize""/finetune_$datasetft""_lr0.001_wd0.0001_ep$bbepoch""_split$ft_split"
     python action_test.py --backbone_folder $bbfoler --backbone_epoch $ftepoch --which_split $ft_split --model 7 --dataset $datasetft --gpu $gpu
     
 done

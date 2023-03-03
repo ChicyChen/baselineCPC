@@ -36,6 +36,7 @@ def main_UCF101_full(f_root, splits_root, csv_root='data/ucf101/'):
         train_split_file = os.path.join(splits_root, 'trainlist%02d.txt' % which_split)
         with open(train_split_file, 'r') as f:
             for line in f:
+                tmp_path = ''
                 tmp_path = line.split(' ')[0][0:-4]
                 if tmp_path in video_name_set:
                     pass
@@ -49,6 +50,7 @@ def main_UCF101_full(f_root, splits_root, csv_root='data/ucf101/'):
         test_split_file = os.path.join(splits_root, 'testlist%02d.txt' % which_split)
         with open(test_split_file, 'r') as f:
             for line in f:
+                tmp_path = ''
                 tmp_path = line.split(' ')[0][0:-4]
                 if tmp_path in video_name_set:
                     pass
@@ -87,22 +89,36 @@ def main_UCF101(f_root, splits_root, csv_root='data/ucf101/'):
     for which_split in [1,2,3]:
         train_set = []
         test_set = []
+        
         train_split_file = os.path.join(splits_root, 'trainlist%02d.txt' % which_split)
         with open(train_split_file, 'r') as f:
             for line in f:
+                tmp_path = ''
                 tmp_path = line.split(' ')[0][0:-4]
+
                 action_name = tmp_path.split('/')[0]
                 action_id = action_dict[action_name]
-                vpath = os.path.join(f_root, tmp_path) + '/'
+
+                vpath = os.path.join(f_root, tmp_path)
+
                 train_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
 
         test_split_file = os.path.join(splits_root, 'testlist%02d.txt' % which_split)
         with open(test_split_file, 'r') as f:
             for line in f:
+                tmp_path = ''
                 tmp_path = line.split(' ')[0][0:-4]
+
+                if tmp_path[-1] == '.':
+                    tmp_path = tmp_path[:-1]
+                    print(tmp_path)
+
                 action_name = tmp_path.split('/')[0]
                 action_id = action_dict[action_name]
-                vpath = os.path.join(f_root, tmp_path) + '/'
+
+                vpath = os.path.join(f_root, tmp_path)
+
+                
                 test_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
 
         write_list(train_set, os.path.join(csv_root, 'train_split%02d.csv' % which_split))
@@ -141,7 +157,7 @@ def main_HMDB51_full(f_root, splits_root, csv_root='data/hmdb51/'):
                     else:
                         video_name_set.append(video_name)
                         vpath = os.path.join(f_root, action_name, video_name[0:-4]) + '/'
-                        all_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
+                        all_set.append([vpath, len(glob.glob(glob.escape(vpath)+"/*.jpg")), action_id])
     
     for i in range(5):
         random.shuffle(all_set)
@@ -158,6 +174,11 @@ def main_HMDB51_full(f_root, splits_root, csv_root='data/hmdb51/'):
 
 def main_HMDB51(f_root, splits_root, csv_root='data/hmdb51/'):
     '''generate training/testing split, count number of available frames, save in csv'''
+
+    # pathname = "/home/siyich/baselineCPC/HMDB51/frame/fencing/Die_Another_Day_-_Fencing_Scene_Part_1_[HD]_avi_fencing_f_cm_np2_le_goo_0"
+    # listlist = glob.glob(glob.escape(pathname)+"/*.jpg")
+    # print(len(listlist))
+
     action_dict_encode = {}
     idx = 0
     if not os.path.exists(csv_root): os.makedirs(csv_root)
@@ -176,13 +197,20 @@ def main_HMDB51(f_root, splits_root, csv_root='data/hmdb51/'):
 
             with open(split_file, 'r') as f:
                 for line in f:
-                    video_name = line.split(' ')[0]
+                    video_name = line.split(' ')[0][0:-4]
+
                     _type = line.split(' ')[1]
-                    vpath = os.path.join(f_root, action_name, video_name[0:-4]) + '/'
+                    vpath = os.path.join(f_root, action_name, video_name)
+
+                    # if "Die_Another_Day_-_Fencing_Scene_Part_1_[HD]" in video_name:
+                    #     print(vpath)
+                    #     vlist = glob.glob(vpath)
+                    #     print(len(vlist))
+
                     if _type == '1':
-                        train_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
+                        train_set.append([vpath, len(glob.glob(glob.escape(vpath)+"/*.jpg")), action_id])
                     elif _type == '2':
-                        test_set.append([vpath, len(glob.glob(os.path.join(vpath, '*.jpg'))), action_id])
+                        test_set.append([vpath, len(glob.glob(glob.escape(vpath)+"/*.jpg")), action_id])
 
         write_list(train_set, os.path.join(csv_root, 'train_split%02d.csv' % which_split))
         write_list(test_set, os.path.join(csv_root, 'test_split%02d.csv' % which_split))
@@ -231,17 +259,19 @@ if __name__ == '__main__':
     # edit 'your_path' here: 
 
     # main_UCF101(f_root='UCF101/frame', 
-    #             splits_root='UCF101/splits_classification')
+    #             splits_root='UCF101/splits_classification',
+    #             csv_root='data/ucf101')
 
     # main_HMDB51(f_root='HMDB51/frame',
-    #             splits_root='HMDB51/split/testTrainMulti_7030_splits')
+    #             splits_root='HMDB51/split/testTrainMulti_7030_splits',
+    #             csv_root='data/hmdb51')
 
     # main_Kinetics400(mode='train', # train or val or test
     #                  k400_path='Kinetics',
     #                  f_root='Kinetics400/frame')
 
-    main_UCF101_full(f_root='UCF101/frame', 
-                splits_root='UCF101/splits_classification')
+    # main_UCF101_full(f_root='UCF101/frame', 
+    #             splits_root='UCF101/splits_classification')
 
     main_HMDB51_full(f_root='HMDB51/frame',
                 splits_root='HMDB51/split/testTrainMulti_7030_splits')
@@ -257,9 +287,9 @@ if __name__ == '__main__':
     #             splits_root='HMDB51/split/testTrainMulti_7030_splits',
     #             csv_root='data/hmdb51_240/')
 
-    main_UCF101_full(f_root='UCF101/frame_240', 
-                splits_root='UCF101/splits_classification',
-                csv_root='data/ucf101_240/')
+    # main_UCF101_full(f_root='UCF101/frame_240', 
+    #             splits_root='UCF101/splits_classification',
+    #             csv_root='data/ucf101_240/')
 
     main_HMDB51_full(f_root='HMDB51/frame_240',
                 splits_root='HMDB51/split/testTrainMulti_7030_splits',
