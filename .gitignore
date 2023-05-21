@@ -18,3 +18,5 @@ old_checkpoints/*
 visualize/*
 xs
 *.zip
+*.png
+*.log
