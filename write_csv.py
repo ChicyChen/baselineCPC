@@ -258,9 +258,9 @@ if __name__ == '__main__':
     # f_root is the frame path
     # edit 'your_path' here: 
 
-    # main_UCF101(f_root='UCF101/frame', 
-    #             splits_root='UCF101/splits_classification',
-    #             csv_root='data/ucf101')
+    main_UCF101(f_root='UCF101/frame', 
+                splits_root='UCF101/splits_classification',
+                csv_root='data/ucf101')
 
     # main_HMDB51(f_root='HMDB51/frame',
     #             splits_root='HMDB51/split/testTrainMulti_7030_splits',
@@ -270,27 +270,27 @@ if __name__ == '__main__':
     #                  k400_path='Kinetics',
     #                  f_root='Kinetics400/frame')
 
-    # main_UCF101_full(f_root='UCF101/frame', 
-    #             splits_root='UCF101/splits_classification')
-
-    main_HMDB51_full(f_root='HMDB51/frame',
-                splits_root='HMDB51/split/testTrainMulti_7030_splits')
+    main_UCF101_full(f_root='UCF101/frame', 
+                splits_root='UCF101/splits_classification')
 
     # main_HMDB51_full(f_root='HMDB51/frame',
     #             splits_root='HMDB51/split/testTrainMulti_7030_splits')
 
-    # main_UCF101(f_root='UCF101/frame_240', 
-    #             splits_root='UCF101/splits_classification',
-    #             csv_root='data/ucf101_240/')
+    # main_HMDB51_full(f_root='HMDB51/frame',
+    #             splits_root='HMDB51/split/testTrainMulti_7030_splits')
+
+    main_UCF101(f_root='UCF101/frame_240', 
+                splits_root='UCF101/splits_classification',
+                csv_root='data/ucf101_240/')
 
     # main_HMDB51(f_root='HMDB51/frame_240',
     #             splits_root='HMDB51/split/testTrainMulti_7030_splits',
     #             csv_root='data/hmdb51_240/')
 
-    # main_UCF101_full(f_root='UCF101/frame_240', 
-    #             splits_root='UCF101/splits_classification',
-    #             csv_root='data/ucf101_240/')
+    main_UCF101_full(f_root='UCF101/frame_240', 
+                splits_root='UCF101/splits_classification',
+                csv_root='data/ucf101_240/')
 
-    main_HMDB51_full(f_root='HMDB51/frame_240',
-                splits_root='HMDB51/split/testTrainMulti_7030_splits',
-                csv_root='data/hmdb51_240/')
+    # main_HMDB51_full(f_root='HMDB51/frame_240',
+    #             splits_root='HMDB51/split/testTrainMulti_7030_splits',
+    #             csv_root='data/hmdb51_240/')
