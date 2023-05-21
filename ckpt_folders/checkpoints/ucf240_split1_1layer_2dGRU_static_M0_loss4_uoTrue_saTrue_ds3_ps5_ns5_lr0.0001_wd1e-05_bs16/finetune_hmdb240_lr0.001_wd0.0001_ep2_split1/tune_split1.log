@@ -1,7 +1,0 @@
-INFO:root:Started
-INFO:root:Epoch: 0, Train loss: 3.7952442, Train Acc: 0.048611112
-INFO:root:Epoch: 0, Validation loss: 3.7002833, Validation Acc: 0.075520836
-INFO:root:Epoch: 1, Train loss: 3.586468, Train Acc: 0.08017677
-INFO:root:Epoch: 1, Validation loss: 3.6057866, Validation Acc: 0.0859375
-INFO:root:Training from ep 0 to ep 2 finished
-INFO:root:Best epoch: 2
