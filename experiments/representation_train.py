@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 # from tensorboardX import SummaryWriter
 
 from data_MNIST import *
-from utils import *
-from hierarchical import *
+from utils.utils import *
+from representation import *
 
 import torch
 import torch.optim as optim
@@ -15,8 +15,13 @@ from torch.utils import data
 from torchvision import datasets, models, transforms
 import torchvision.utils as vutils
 
-"python hierarchical_train.py"
-"python hierarchical_train.py --no_save"
+
+"python representation_train.py"
+"python representation_train.py --no_save"
+"python representation_train.py --pred_step 9 --nsub 9"
+
+"python representation_train.py --train_gt"
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
@@ -33,24 +38,25 @@ parser.add_argument('--epochs', default=10, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--gpu', default='1', type=str)
+parser.add_argument('--gpu', default='0,1', type=str)
 parser.add_argument('--prefix', default='checkpoints', type=str,
                     help='prefix of checkpoint filename')
 parser.add_argument('--no_test', action='store_true')
 parser.add_argument('--no_save', action='store_true')
+parser.add_argument('--train_gt', action='store_true')
 
 
 def main():
-    torch.manual_seed(0)
-    np.random.seed(0)
+    torch.manual_seed(233)
+    np.random.seed(233)
+    
     global args
     args = parser.parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     global cuda
     cuda = torch.device('cuda')
 
-    model = CPC_2layer_1d_static(pred_step=args.pred_step, nsub=args.nsub)
-
+    model = CPC_1layer_1d_static_rep(pred_step=args.pred_step, nsub=args.nsub, gt=args.train_gt)
     if args.pretrain:
         if os.path.isfile(args.pretrain):
             print("=> loading pretrained checkpoint '{}'".format(args.pretrain))
@@ -86,7 +92,7 @@ def main():
         os.makedirs(args.prefix)
 
     ckpt_folder = os.path.join(
-        args.prefix, 'CPC_2layer_1d_static_lr%s_wd%s_bs%s' % (args.lr, args.wd, args.batch_size)) 
+        args.prefix, 'CPC_1layer_1d_static_rep_lr%s_wd%s_bs%s_ps%s_ns%s_gt%s' % (args.lr, args.wd, args.batch_size, args.pred_step, args.nsub, args.train_gt)) 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 
@@ -147,13 +153,12 @@ def train(data_loader, model, optimizer, epoch, train = True):
     for idx, input_seq in enumerate(data_loader):
         input_seq = input_seq.to(cuda)
         B = input_seq.size(0)
-        [score_, score2_, mask_] = model(input_seq)
+        [score_, mask_] = model(input_seq)
         (B, pred, B, N) = score_.shape
         score_flattened = score_.view(B*pred, B*N)
-        score2_flattened = score2_.view(B*pred, B*N)
         mask_flattened = mask_.view(B*pred, B*N)
         mask_flattened = mask_flattened.to(int).argmax(dim=1)
-        loss = criterion(score_flattened, mask_flattened) + criterion(score2_flattened, mask_flattened)
+        loss = criterion(score_flattened, mask_flattened)
         if train:
             optimizer.zero_grad()
             loss.backward()

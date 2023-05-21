@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # from tensorboardX import SummaryWriter
 
 from data_MNIST import *
-from utils import *
+from utils.utils import *
 from baseline import *
 
 import torch

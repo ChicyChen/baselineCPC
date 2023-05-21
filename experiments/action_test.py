@@ -14,8 +14,8 @@ from model_A import *
 from model_R import *
 from model_M import *
 
-from utils import *
-from augmentation import *
+from utils.utils import *
+from utils.augmentation import *
 
 import logging
 

@@ -14,8 +14,8 @@ import cv2
 from tqdm import tqdm
 from joblib import Parallel, delayed
 
-from utils import *
-from augmentation import *
+from utils.utils import *
+from utils.augmentation import *
 
 
 def get_data_hmdb(transform=None, mode='train', num_seq=20, downsample=3, which_split=1, return_label=False, batch_size=16, dim=150):

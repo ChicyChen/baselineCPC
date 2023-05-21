@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 # from tensorboardX import SummaryWriter
 
 from data_MNIST import *
-from utils import *
-from representation import *
+from utils.utils import *
+from hierarchical import *
 
 import torch
 import torch.optim as optim
@@ -18,18 +18,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+"python hierarchical_classify.py --motion --backbone_folder checkpoints/CPC_2layer_1d_static_lr0.0001_wd1e-05_bs128 --gpu 0 --freeze"
+"python hierarchical_classify.py --backbone_folder checkpoints/CPC_2layer_1d_static_lr0.0001_wd1e-05_bs128 --gpu 2 --freeze"
+"python hierarchical_classify.py --motion --backbone_folder checkpoints/CPC_2layer_1d_static_lr0.0001_wd1e-05_bs128 --gpu 1"
+"python hierarchical_classify.py --backbone_folder checkpoints/CPC_2layer_1d_static_lr0.0001_wd1e-05_bs128 --gpu 3"
 
-"python representation_classify.py --motion --backbone_folder checkpoints/CPC_1layer_1d_static_rep_lr0.0001_wd1e-05_bs128 --gpu 0 --freeze"
-"python representation_classify.py --backbone_folder checkpoints/CPC_1layer_1d_static_rep_lr0.0001_wd1e-05_bs128 --gpu 2 --freeze"
-
-"python representation_classify.py --motion --backbone_folder checkpoints/CPC_1layer_1d_static_rep_nossl --gpu 3 --freeze"
-"python representation_classify.py --backbone_folder checkpoints/CPC_1layer_1d_static_rep_nossl --gpu 1 --freeze"
-
-"python representation_classify.py --motion --backbone_folder checkpoints/CPC_1layer_1d_static_rep_lr0.0001_wd1e-05_bs128_ps9_ns9 --gpu 0 --freeze"
-"python representation_classify.py --backbone_folder checkpoints/CPC_1layer_1d_static_rep_lr0.0001_wd1e-05_bs128_ps9_ns9 --gpu 2 --freeze"
-
-"python representation_classify.py --motion --backbone_folder checkpoints/CPC_1layer_1d_static_rep_lr0.0001_wd1e-05_bs128_ps3_ns3_gtTrue --gpu 0 --freeze"
-"python representation_classify.py --backbone_folder checkpoints/CPC_1layer_1d_static_rep_lr0.0001_wd1e-05_bs128_ps3_ns3_gtTrue --gpu 2 --freeze"
+"python hierarchical_classify.py --motion --backbone_folder checkpoints/CPC_2layer_1d_static_nossl --gpu 0 --freeze"
+"python hierarchical_classify.py --backbone_folder checkpoints/CPC_2layer_1d_static_nossl --gpu 2 --freeze"
+"python hierarchical_classify.py --motion --backbone_folder checkpoints/CPC_2layer_1d_static_nossl --gpu 1"
+"python hierarchical_classify.py --backbone_folder checkpoints/CPC_2layer_1d_static_nossl --gpu 3"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_seq', default=10, type=int,
@@ -48,11 +45,12 @@ parser.add_argument('--epochs', default=10, type=int,
                     help='number of total epochs to finetune')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--gpu', default='0,1', type=str)
+parser.add_argument('--gpu', default='1', type=str)
 parser.add_argument('--no_test', action='store_true')
 parser.add_argument('--no_save', action='store_true')
 parser.add_argument('--freeze', action='store_true')
 parser.add_argument('--motion', action='store_true')
+
 
 
 def main():
@@ -65,9 +63,9 @@ def main():
     cuda = torch.device('cuda')
 
     if args.motion:
-        model = motion_CPC_1layer_1d_static_rep()
+        model = motion_CPC_2layer_1d_static()
     else:
-        model = digit_CPC_1layer_1d_static_rep()
+        model = digit_CPC_2layer_1d_static()
 
     backbone_path = os.path.join(args.backbone_folder, 'epoch%s.pth.tar' % args.backbone_epoch)
     if os.path.isfile(backbone_path):
@@ -78,8 +76,7 @@ def main():
     else:
         print("=> no backbone found at '{}'".format(backbone_path))
 
-    model = nn.DataParallel(model)
-
+    # model = nn.DataParallel(model)
     model = model.to(cuda)
     global criterion
     criterion = nn.CrossEntropyLoss()
@@ -147,7 +144,8 @@ def main():
         else:
             ckpt_folder = os.path.join(
                 args.backbone_folder, 'freeze_ftdigit_lr%s_wd%s_ep%s' % (args.lr, args.wd, args.backbone_epoch))
-
+   
+    
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 

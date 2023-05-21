@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 # from tensorboardX import SummaryWriter
 
 from data_MNIST import *
-from utils import *
-from representation import *
+from utils.utils import *
+from baseline import *
 
 import torch
 import torch.optim as optim
@@ -16,11 +16,8 @@ from torchvision import datasets, models, transforms
 import torchvision.utils as vutils
 
 
-"python representation_train.py"
-"python representation_train.py --no_save"
-"python representation_train.py --pred_step 9 --nsub 9"
-
-"python representation_train.py --train_gt"
+"python baseline_train.py"
+"python baseline_train.py --no_save"
 
 
 parser = argparse.ArgumentParser()
@@ -43,20 +40,18 @@ parser.add_argument('--prefix', default='checkpoints', type=str,
                     help='prefix of checkpoint filename')
 parser.add_argument('--no_test', action='store_true')
 parser.add_argument('--no_save', action='store_true')
-parser.add_argument('--train_gt', action='store_true')
 
 
 def main():
-    torch.manual_seed(233)
-    np.random.seed(233)
-    
+    torch.manual_seed(0)
+    np.random.seed(0)
     global args
     args = parser.parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     global cuda
     cuda = torch.device('cuda')
 
-    model = CPC_1layer_1d_static_rep(pred_step=args.pred_step, nsub=args.nsub, gt=args.train_gt)
+    model = CPC_1layer_1d_static(pred_step=args.pred_step, nsub=args.nsub)
     if args.pretrain:
         if os.path.isfile(args.pretrain):
             print("=> loading pretrained checkpoint '{}'".format(args.pretrain))
@@ -92,7 +87,7 @@ def main():
         os.makedirs(args.prefix)
 
     ckpt_folder = os.path.join(
-        args.prefix, 'CPC_1layer_1d_static_rep_lr%s_wd%s_bs%s_ps%s_ns%s_gt%s' % (args.lr, args.wd, args.batch_size, args.pred_step, args.nsub, args.train_gt)) 
+        args.prefix, 'CPC_1layer_1d_static_lr%s_wd%s_bs%s' % (args.lr, args.wd, args.batch_size)) 
     if not os.path.exists(ckpt_folder):
         os.makedirs(ckpt_folder)
 
